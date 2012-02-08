@@ -7,6 +7,7 @@
   <version>0.1-SNAPSHOT</version>
   <name>electroview</name>
   <url>http://maven.apache.org</url>
+
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
@@ -14,5 +15,12 @@
       <version>4.10</version>
       <scope>test</scope>
     </dependency>
+
+    <dependency>
+      <groupId>org.xerial</groupId>
+      <artifactId>sqlite-jdbc</artifactId>
+      <version>3.7.2</version>
+    </dependency>            
   </dependencies>
+
 </project>
