@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.text.DateFormat;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -26,6 +27,7 @@ public class Model
    private final Map<Long, Double> useMap = new TreeMap<Long, Double>();
 
    int addCount = 0;
+   DateFormat df = DateFormat.getDateTimeInstance();
 
    private PreparedStatement insert = null;
 
@@ -83,13 +85,20 @@ public class Model
             count++;
             retVal += useMap.get(key);
          }
+         else
+         {
+            System.out.println(df.format(startTime * 1000));
+            System.out.println(df.format(endTime * 1000));
+            System.exit(1);
+         }
 
       if (retVal > 0)
          System.out.println("HERE = " + startTime + "," + endTime);
       else
       {
          System.out.println(range());
-         System.out.println(minVal + " => " + (minVal + offsetEnd));
+         System.out.println(df.format(minVal * 1000) + " => "
+               + df.format((minVal + offsetEnd) * 1000));
          System.exit(1);
       }
 
@@ -106,7 +115,7 @@ public class Model
          largest = Math.max(largest, val);
       }
 
-      return lowest + " => " + largest + " R";
+      return df.format(lowest * 1000) + " => " + df.format(largest * 1000) + " R";
    }
 
    private void connect()
@@ -122,6 +131,7 @@ public class Model
          else
          {
             build(f);
+            sync();
          }
       }
       catch (ClassNotFoundException e)
@@ -178,6 +188,7 @@ public class Model
 
       // Crossover
       useMap.putAll(addMap);
+      System.out.println("SIZE = " + useMap.size());
    }
 
    private void connect(File f) throws ClassNotFoundException, SQLException
@@ -206,7 +217,8 @@ public class Model
             syncFile(f, maxTime);
       }
 
-      System.out.println("Synchronising the database: " + addCount);
+      System.out.println("Synchronising the database: " + addCount + " from "
+            + df.format(maxTime * 1000));
       if (insert != null)
          insert.executeBatch();
       System.out.println("Synchronisation complete");
