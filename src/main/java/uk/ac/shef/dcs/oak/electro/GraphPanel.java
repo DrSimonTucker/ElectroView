@@ -6,19 +6,28 @@ import java.awt.Graphics;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
-public class GraphPanel extends JPanel
+public class GraphPanel extends JPanel implements ModelListener
 {
    Model mod;
 
    public GraphPanel(Model mod)
    {
       this.mod = mod;
+      mod.addListener(this);
+   }
+
+   @Override
+   public void modelUpdated()
+   {
+      repaint();
    }
 
    @Override
    public void paint(Graphics g)
    {
       super.paint(g);
+
+      System.out.println("PAINTING");
 
       // Plot out the graph
       int xTicks = this.getWidth();
