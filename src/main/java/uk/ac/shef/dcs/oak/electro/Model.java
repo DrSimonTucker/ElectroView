@@ -1,8 +1,6 @@
 package uk.ac.shef.dcs.oak.electro;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -11,7 +9,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.text.DateFormat;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +21,7 @@ public class Model
 {
    private static Connection database;
 
-   private static final int TIME = 10 * 1000;
+   private static final int TIME = 2 * 1000;
 
    public static void main(String[] args)
    {
@@ -32,8 +29,6 @@ public class Model
    }
 
    int addCount = 0;
-   DateFormat df = DateFormat.getDateTimeInstance();
-   private final double fixedMax = -1;
    private PreparedStatement insert = null;
    List<ModelListener> listeners = new LinkedList<ModelListener>();
    long minVal;
@@ -77,8 +72,6 @@ public class Model
       s.executeUpdate("DROP TABLE IF EXISTS electro");
       s.executeUpdate("CREATE TABLE electro (dt TIMESTAMP, temp DOUBLE, watts INTEGER)");
       s.executeUpdate("CREATE INDEX dt_index ON electro (dt)");
-      sync(new File("/Users/sat/workspace/electricity/data2/"), System.currentTimeMillis() / 1000
-            - offsetEnd);
       s.close();
    }
 
@@ -128,9 +121,6 @@ public class Model
 
    public double getMax(long startTime, long endTime)
    {
-      if (fixedMax >= 0)
-         return fixedMax;
-
       double max = 0.0;
       for (Long key : useMap.keySet())
          if (key >= startTime && key <= endTime)
@@ -153,25 +143,39 @@ public class Model
             retVal += useMap.get(key);
          }
 
-      return retVal / count;
-   }
-
-   private String range()
-   {
-      long lowest = Long.MAX_VALUE;
-      long largest = 0;
-      for (Long val : useMap.keySet())
+      // Deal with the problem of missing data
+      if (count == 0)
       {
-         lowest = Math.min(lowest, val);
-         largest = Math.max(largest, val);
-      }
+         // Interpolate over two values
+         long closeStart = Long.MAX_VALUE;
+         double startVal = 0;
+         long closeEnd = Long.MAX_VALUE;
+         double endVal = 0;
 
-      return df.format(lowest * 1000) + " => " + df.format(largest * 1000) + " R";
+         for (Long key : useMap.keySet())
+         {
+            long sDiff = startTime - key;
+            long eDiff = key - endTime;
+            if (sDiff > 0 && sDiff < closeStart)
+            {
+               closeStart = sDiff;
+               startVal = useMap.get(key);
+            }
+            if (eDiff > 0 && eDiff < closeEnd)
+            {
+               closeEnd = eDiff;
+               endVal = useMap.get(key);
+            }
+         }
+
+         return (startVal + endVal) / 2;
+      }
+      else
+         return retVal / count;
    }
 
    private void runSync()
    {
-      System.out.println("Synching");
       if (synching)
          try
          {
@@ -213,8 +217,10 @@ public class Model
       ResultSet rs = s.executeQuery("SELECT MAX(dt) from electro");
       if (rs.next())
          maxTime = rs.getTimestamp(1).getTime();
-      System.out.println(maxTime);
-      syncLines(reader.readLines(), maxTime);
+      if (useMap.size() > 0)
+         syncLines(reader.readLines(), maxTime);
+      else
+         syncLines(reader.readFullLines(), maxTime);
       rs.close();
       s.close();
 
@@ -247,55 +253,8 @@ public class Model
       // Update listeners
       if (addMap.size() > 0)
       {
-         System.out.println("Adding " + addMap.size());
          alertListeners();
       }
-   }
-
-   private void sync(File syncDir, long maxTime) throws IOException, SQLException
-   {
-      for (File f : syncDir.listFiles())
-      {
-         if (f.isFile())
-            syncFile(f, maxTime);
-      }
-
-      System.out.println("Synchronising the database: " + addCount + " from "
-            + df.format(maxTime * 1000));
-      if (insert != null)
-         insert.executeBatch();
-      System.out.println("Synchronisation complete");
-   }
-
-   private void syncFile(File f, long maxTime) throws IOException, SQLException
-   {
-      BufferedReader reader = new BufferedReader(new FileReader(f));
-      for (String line = reader.readLine(); line != null; line = reader.readLine())
-      {
-         String[] elems = line.trim().split(",");
-         if (elems.length == 6)
-         {
-            long timestamp = Long.parseLong(elems[0]);
-            double temp = Double.parseDouble(elems[2]);
-            int watts = Integer.parseInt(elems[3]);
-
-            if (maxTime == 0)
-               throw new IOException();
-            if (timestamp > maxTime)
-            {
-               addCount++;
-               if (insert == null)
-                  insert = database
-                        .prepareStatement("INSERT into electro (dt,temp,watts) VALUES (?,?,?)");
-
-               insert.setTimestamp(1, new Timestamp(timestamp));
-               insert.setDouble(2, temp);
-               insert.setInt(3, watts);
-               insert.addBatch();
-            }
-         }
-      }
-      reader.close();
    }
 
    private void syncLines(List<String> lines, long maxTime) throws IOException, SQLException
@@ -329,6 +288,5 @@ public class Model
 
       if (insert != null)
          insert.executeBatch();
-      System.out.println("Adding " + addCount);
    }
 }

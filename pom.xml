@@ -8,6 +8,10 @@
   <name>electroview</name>
   <url>http://maven.apache.org</url>
 
+  <prerequisites>
+    <maven>2.2.0</maven>
+  </prerequisites>
+
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
@@ -34,7 +38,7 @@
       <plugin>
 	<groupId>org.codehaus.mojo</groupId>
 	<artifactId>exec-maven-plugin</artifactId>
-	<version>1.2</version>
+	<version>1.2.1</version>
 	<executions>
 	  <execution>
 	    <goals>

@@ -11,7 +11,7 @@ public class GraphPanel extends JPanel implements ModelListener
    public static void main(String[] args) throws Exception
    {
       JFrame framer = new JFrame();
-      GraphPanel mine = new GraphPanel(new Model(0, 60 * 60));
+      GraphPanel mine = new GraphPanel(new Model(0, 60 * 60 * 24));
       framer.add(mine);
 
       framer.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -40,7 +40,7 @@ public class GraphPanel extends JPanel implements ModelListener
    {
       super.paint(g);
 
-      System.out.println("PAINTING");
+      long sTime = System.currentTimeMillis();
 
       // Plot out the graph
       int xTicks = this.getWidth();
@@ -55,11 +55,13 @@ public class GraphPanel extends JPanel implements ModelListener
          int newY = this.getHeight() - (int) (pixPerc * this.getHeight());
          if (oldY == -1)
             oldY = newY;
-         g.drawLine(xTicks - i, oldY, xTicks - (i + 1), newY);
+         g.drawLine(i, oldY, (i + 1), newY);
          oldY = newY;
       }
 
       g.setColor(Color.red);
       g.drawLine(this.getWidth() - 1, 0, this.getWidth() - 1, this.getHeight());
+
+      System.out.println("TIME = " + (System.currentTimeMillis() - sTime) / 1000.0);
    }
 }
