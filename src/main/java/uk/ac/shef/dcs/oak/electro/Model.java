@@ -9,6 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -30,12 +31,18 @@ public class Model
 
    int addCount = 0;
    private PreparedStatement insert = null;
+
+   // A list of the timestamps stored, used to increase the speed of some
+   // calculations
+   List<Long> keys = new LinkedList<Long>();
    List<ModelListener> listeners = new LinkedList<ModelListener>();
    long minVal;
    long offsetEnd;
    long offsetStart;
    long oldMaxTime = 0;
    private final SyncRead reader = new SyncRead();
+
+   // Flag indicating that we should pull data remotely
    private boolean synching = true;
 
    // This stores all the usage data
@@ -111,6 +118,15 @@ public class Model
       database = DriverManager.getConnection("jdbc:sqlite:" + f.getAbsolutePath());
    }
 
+   public int findIndex(long val)
+   {
+      for (int i = 0; i < keys.size(); i++)
+         if (keys.get(i) > val)
+            return i - 1;
+
+      return keys.size() - 1;
+   }
+
    public double getMax()
    {
       Double maxVal = 0.0;
@@ -136,12 +152,11 @@ public class Model
       long startTime = (long) (percLeft * (offsetEnd - offsetStart) + minVal);
       long endTime = (long) (percRight * (offsetEnd - offsetStart) + minVal);
 
-      for (Long key : useMap.keySet())
-         if (key >= startTime && key <= endTime)
-         {
-            count++;
-            retVal += useMap.get(key);
-         }
+      for (int i = findIndex(startTime); i <= findIndex(endTime); i++)
+      {
+         count++;
+         retVal += useMap.get(keys.get(i));
+      }
 
       // Deal with the problem of missing data
       if (count == 0)
@@ -254,6 +269,11 @@ public class Model
       if (addMap.size() > 0)
       {
          alertListeners();
+
+         // Update the keys list
+         keys.clear();
+         keys.addAll(useMap.keySet());
+         Collections.sort(keys);
       }
    }
 
