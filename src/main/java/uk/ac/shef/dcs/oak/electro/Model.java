@@ -1,6 +1,8 @@
 package uk.ac.shef.dcs.oak.electro;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -24,29 +26,34 @@ public class Model
 
    private static final int TIME = 2 * 1000;
 
-   public static void main(String[] args)
-   {
-      // Model mine = Model.getModel();
-   }
-
    int addCount = 0;
-   private PreparedStatement insert = null;
 
+   private PreparedStatement insert = null;
    // A list of the timestamps stored, used to increase the speed of some
    // calculations
    List<Long> keys = new LinkedList<Long>();
+
    List<ModelListener> listeners = new LinkedList<ModelListener>();
    long minVal;
    long offsetEnd;
    long offsetStart;
    long oldMaxTime = 0;
    private final SyncRead reader = new SyncRead();
-
    // Flag indicating that we should pull data remotely
    private boolean synching = true;
 
    // This stores all the usage data
    private final Map<Long, Double> useMap = new TreeMap<Long, Double>();
+
+   /**
+    * No sync constructor
+    */
+   public Model()
+   {
+      // Ignore the offsets
+      // if (database == null)
+      // connect();
+   }
 
    public Model(long start, long end)
    {
@@ -69,7 +76,10 @@ public class Model
    private void alertListeners()
    {
       for (ModelListener listener : listeners)
+      {
          listener.modelUpdated();
+         listener.dateUpdated();
+      }
    }
 
    private void build(File f) throws ClassNotFoundException, SQLException, IOException
@@ -120,11 +130,34 @@ public class Model
 
    public int findIndex(long val)
    {
-      for (int i = 0; i < keys.size(); i++)
-         if (keys.get(i) > val)
-            return i - 1;
+      int top = keys.size() - 1;
+      int bottom = 0;
+      while (top - bottom > 1)
+      {
+         int midPoint = (top + bottom) / 2;
+         if (keys.get(midPoint) > val)
+            top = midPoint;
+         else
+            bottom = midPoint;
+      }
 
-      return keys.size() - 1;
+      return bottom;
+      /*
+       * for (int i = 0; i < keys.size(); i++) if (keys.get(i) > val) return i -
+       * 1;
+       * 
+       * return keys.size() - 1;
+       */
+   }
+
+   public long getCurrEndTime()
+   {
+      return minVal + (offsetStart - offsetEnd);
+   }
+
+   public long getCurrStartTime()
+   {
+      return minVal;
    }
 
    public double getMax()
@@ -146,11 +179,15 @@ public class Model
 
    public double getMean(double percLeft, double percRight)
    {
+      // System.out.println("mean = " + percLeft + "," + percRight);
       double retVal = 0.0;
       double count = 0.0;
 
       long startTime = (long) (percLeft * (offsetEnd - offsetStart) + minVal);
       long endTime = (long) (percRight * (offsetEnd - offsetStart) + minVal);
+
+      // System.out.println(startTime + " => " + endTime + " (" + (endTime -
+      // startTime) + ")");
 
       for (int i = findIndex(startTime); i <= findIndex(endTime); i++)
       {
@@ -189,6 +226,37 @@ public class Model
          return retVal / count;
    }
 
+   public void loadData(File f) throws IOException
+   {
+      useMap.clear();
+
+      BufferedReader reader = new BufferedReader(new FileReader(f));
+      oldMaxTime = 0;
+      minVal = Long.MAX_VALUE;
+      for (String line = reader.readLine(); line != null; line = reader.readLine())
+      {
+         String[] elems = line.trim().split("\\s+");
+         long timestamp = Long.parseLong(elems[0]);
+         double watts = Double.parseDouble(elems[1]);
+         oldMaxTime = Math.max(oldMaxTime, timestamp);
+         minVal = Math.min(minVal, timestamp);
+         useMap.put(timestamp, watts);
+      }
+      reader.close();
+      System.out.println("Read data");
+
+      // Update the times
+      offsetStart = 0;
+      offsetEnd = (oldMaxTime - minVal);
+
+      alertListeners();
+
+      // Update the keys list
+      keys.clear();
+      keys.addAll(useMap.keySet());
+      Collections.sort(keys);
+   }
+
    private void runSync()
    {
       if (synching)
@@ -224,6 +292,7 @@ public class Model
 
    private void sync() throws SQLException, IOException
    {
+      System.out.println("Syncing");
       addCount = 0;
 
       // Synchronise the database
@@ -308,5 +377,10 @@ public class Model
 
       if (insert != null)
          insert.executeBatch();
+   }
+
+   public static void main(String[] args)
+   {
+      // Model mine = Model.getModel();
    }
 }
