@@ -1,4 +1,4 @@
-package uk.ac.shef.dcs.oak.electro;
+package uk.ac.shef.dcs.oak.electro.complex;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -28,17 +28,27 @@ public class Model
 
    int addCount = 0;
 
+   long currLeftDate;
+   long currRightDate;
+   long fixedSize = -1;
+
    private PreparedStatement insert = null;
+
    // A list of the timestamps stored, used to increase the speed of some
    // calculations
    List<Long> keys = new LinkedList<Long>();
-
    List<ModelListener> listeners = new LinkedList<ModelListener>();
    long minVal;
    long offsetEnd;
    long offsetStart;
    long oldMaxTime = 0;
+   int prevIndex = -1;
+   double prevPerc = -1;
    private final SyncRead reader = new SyncRead();
+   long selLeftDate;
+
+   long selRightDate;
+
    // Flag indicating that we should pull data remotely
    private boolean synching = true;
 
@@ -71,15 +81,19 @@ public class Model
    public void addListener(ModelListener list)
    {
       listeners.add(list);
+      alertListeners(list);
    }
 
    private void alertListeners()
    {
       for (ModelListener listener : listeners)
-      {
-         listener.modelUpdated();
-         listener.dateUpdated();
-      }
+         alertListeners(listener);
+   }
+
+   private void alertListeners(ModelListener listener)
+   {
+      listener.modelUpdated();
+      listener.dateUpdated();
    }
 
    private void build(File f) throws ClassNotFoundException, SQLException, IOException
@@ -150,50 +164,50 @@ public class Model
        */
    }
 
+   public int findIndex(long val, int prevIndex)
+   {
+
+      for (int i = prevIndex; i < keys.size(); i++)
+         if (keys.get(i) > val)
+            return i - 1;
+
+      return keys.size() - 1;
+
+   }
+
    public long getCurrEndTime()
    {
-      return minVal + (offsetStart - offsetEnd);
+      return minVal + (offsetEnd - offsetStart);
    }
 
-   public long getCurrStartTime()
+   public double getCurrMean(double percLeft, double percRight)
    {
-      return minVal;
-   }
-
-   public double getMax()
-   {
-      Double maxVal = 0.0;
-      for (Double val : useMap.values())
-         maxVal = Math.max(val, maxVal);
-      return maxVal;
-   }
-
-   public double getMax(long startTime, long endTime)
-   {
-      double max = 0.0;
-      for (Long key : useMap.keySet())
-         if (key >= startTime && key <= endTime)
-            max = Math.max(useMap.get(key), max);
-      return max;
-   }
-
-   public double getMean(double percLeft, double percRight)
-   {
-      // System.out.println("mean = " + percLeft + "," + percRight);
       double retVal = 0.0;
       double count = 0.0;
 
-      long startTime = (long) (percLeft * (offsetEnd - offsetStart) + minVal);
-      long endTime = (long) (percRight * (offsetEnd - offsetStart) + minVal);
+      long startTime = (long) (percLeft * (selRightDate - selLeftDate) + selLeftDate);
+      long endTime = (long) (percRight * (selRightDate - selLeftDate) + selLeftDate);
 
-      // System.out.println(startTime + " => " + endTime + " (" + (endTime -
-      // startTime) + ")");
-
-      for (int i = findIndex(startTime); i <= findIndex(endTime); i++)
+      int endIndex = -1;
+      int startIndex = -1;
+      if (percLeft == prevPerc)
+      {
+         startIndex = prevIndex;
+         endIndex = findIndex(endTime, prevIndex);
+      }
+      else
+      {
+         endIndex = findIndex(endTime);
+         startIndex = findIndex(startTime);
+      }
+      for (int i = startIndex; i <= endIndex; i++)
       {
          count++;
          retVal += useMap.get(keys.get(i));
       }
+
+      prevPerc = percRight;
+      prevIndex = endIndex;
 
       // Deal with the problem of missing data
       if (count == 0)
@@ -226,6 +240,119 @@ public class Model
          return retVal / count;
    }
 
+   public long getCurrStartTime()
+   {
+      return minVal;
+   }
+
+   public double getLeftPerc()
+   {
+      return (selLeftDate - currLeftDate) / (currRightDate - currLeftDate + 0.0);
+   }
+
+   public double getMax()
+   {
+      Double maxVal = 0.0;
+      for (Double val : useMap.values())
+         maxVal = Math.max(val, maxVal);
+      return maxVal;
+   }
+
+   public double getMax(long startTime, long endTime)
+   {
+      double max = 0.0;
+      for (Long key : useMap.keySet())
+         if (key >= startTime && key <= endTime)
+            max = Math.max(useMap.get(key), max);
+      return max;
+   }
+
+   public double getMean(double percLeft, double percRight)
+   {
+      double retVal = 0.0;
+      double count = 0.0;
+
+      long startTime = (long) (percLeft * (currRightDate - currLeftDate) + currLeftDate);
+      long endTime = (long) (percRight * (currRightDate - currLeftDate) + currLeftDate);
+
+      int endIndex = -1;
+      int startIndex = -1;
+      if (percLeft == prevPerc)
+      {
+         startIndex = prevIndex;
+         endIndex = findIndex(endTime, prevIndex);
+      }
+      else
+      {
+         endIndex = findIndex(endTime);
+         startIndex = findIndex(startTime);
+      }
+      for (int i = startIndex; i <= endIndex; i++)
+      {
+         count++;
+         retVal += useMap.get(keys.get(i));
+      }
+
+      prevPerc = percRight;
+      prevIndex = endIndex;
+
+      // Deal with the problem of missing data
+      if (count == 0)
+      {
+         // Interpolate over two values
+         long closeStart = Long.MAX_VALUE;
+         double startVal = 0;
+         long closeEnd = Long.MAX_VALUE;
+         double endVal = 0;
+
+         for (Long key : useMap.keySet())
+         {
+            long sDiff = startTime - key;
+            long eDiff = key - endTime;
+            if (sDiff > 0 && sDiff < closeStart)
+            {
+               closeStart = sDiff;
+               startVal = useMap.get(key);
+            }
+            if (eDiff > 0 && eDiff < closeEnd)
+            {
+               closeEnd = eDiff;
+               endVal = useMap.get(key);
+            }
+         }
+
+         return (startVal + endVal) / 2;
+      }
+      else
+         return retVal / count;
+   }
+
+   public double getPerc(long time)
+   {
+      double percValue = (time - minVal) / (offsetEnd - offsetStart + 0.0);
+      return percValue;
+   }
+
+   public double getRightPerc()
+   {
+      return (selRightDate - currLeftDate) / (currRightDate - currLeftDate + 0.0);
+   }
+
+   public long getSelEndTime()
+   {
+      return selRightDate;
+   }
+
+   public long getSelStartTime()
+   {
+      return selLeftDate;
+   }
+
+   public boolean isFixed()
+   {
+      return fixedSize > 0;
+   }
+
    public void loadData(File f) throws IOException
    {
       useMap.clear();
@@ -236,7 +363,7 @@ public class Model
       for (String line = reader.readLine(); line != null; line = reader.readLine())
       {
          String[] elems = line.trim().split("\\s+");
-         long timestamp = Long.parseLong(elems[0]);
+         long timestamp = Long.parseLong(elems[0]) * 1000;
          double watts = Double.parseDouble(elems[1]);
          oldMaxTime = Math.max(oldMaxTime, timestamp);
          minVal = Math.min(minVal, timestamp);
@@ -255,6 +382,22 @@ public class Model
       keys.clear();
       keys.addAll(useMap.keySet());
       Collections.sort(keys);
+
+      selLeftDate = minVal;
+      selRightDate = minVal + (offsetEnd - offsetStart);
+      currLeftDate = selLeftDate;
+      currRightDate = selRightDate;
+   }
+
+   public void reset()
+   {
+      currLeftDate = minVal;
+      selLeftDate = currLeftDate;
+
+      currRightDate = minVal + (offsetEnd - offsetStart);
+      selRightDate = currRightDate;
+
+      alertListeners();
    }
 
    private void runSync()
@@ -283,6 +426,33 @@ public class Model
             runSync();
          }
       }, TIME);
+   }
+
+   public void setBounds(double perc)
+   {
+      System.out.println(perc);
+      selLeftDate = (long) (currLeftDate + (currRightDate - currLeftDate) * perc - fixedSize / 2);
+      selLeftDate = Math.max(selLeftDate, currLeftDate);
+      selRightDate = selLeftDate + fixedSize;
+
+      alertListeners();
+   }
+
+   public void setFixed(long value)
+   {
+      fixedSize = value;
+   }
+
+   public void setLeftSelection(double perc)
+   {
+      selLeftDate = (long) (currLeftDate + (currRightDate - currLeftDate) * perc);
+      alertListeners();
+   }
+
+   public void setRightSelection(double perc)
+   {
+      selRightDate = (long) (currLeftDate + (currRightDate - currLeftDate) * perc);
+      alertListeners();
    }
 
    public void setSynching(boolean val)
@@ -377,6 +547,13 @@ public class Model
 
       if (insert != null)
          insert.executeBatch();
+   }
+
+   public void zoom()
+   {
+      currLeftDate = selLeftDate;
+      currRightDate = selRightDate;
+      alertListeners();
    }
 
    public static void main(String[] args)

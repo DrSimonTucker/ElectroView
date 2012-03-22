@@ -1,4 +1,4 @@
-package uk.ac.shef.dcs.oak.electro;
+package uk.ac.shef.dcs.oak.electro.complex;
 
 public interface ModelListener
 {
