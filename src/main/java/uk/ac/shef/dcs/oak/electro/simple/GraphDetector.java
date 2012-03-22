@@ -7,6 +7,7 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
@@ -37,7 +38,14 @@ public class GraphDetector extends JPanel
                counter = (counter + 1) % x.length;
             }
             else
-               produceGraph();
+               try
+               {
+                  produceGraph(new File("read.txt"));
+               }
+               catch (IOException e)
+               {
+                  e.printStackTrace();
+               }
             repaint();
          }
 
@@ -107,8 +115,9 @@ public class GraphDetector extends JPanel
 
    }
 
-   private void produceGraph()
+   private void produceGraph(File outFile) throws IOException
    {
+      PrintStream ps = new PrintStream(outFile);
       int SIZE = 60 * 60 * 24;
       int[] vals = new int[SIZE];
       for (int i = 0; i < SIZE; i++)
@@ -119,10 +128,10 @@ public class GraphDetector extends JPanel
          double xEnd = (x[1] + (x[2] - x[1]) * perc) / this.getWidth();
          double yStart = (y[0] + (y[3] - y[0]) * perc) / this.getHeight();
          double yEnd = (y[1] + (y[2] - y[1]) * perc) / this.getHeight();
-         if (i < 10 || i > 86388)
-            System.out.println(i + ": " + xStart + " => " + xEnd);
          vals[i] = (int) (getMidPoint(xStart, xEnd, yStart, yEnd) * this.getHeight());
+         ps.println(i + " " + vals[i]);
       }
+      ps.close();
    }
 
    public static void main(String[] args)

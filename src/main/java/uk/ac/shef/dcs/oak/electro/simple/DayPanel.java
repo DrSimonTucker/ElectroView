@@ -36,9 +36,12 @@ public class DayPanel extends JPanel
    {
       double flipValue = mod.getDateRange() / (this.getWidth() - 2 * MARGIN + 0.0);
       double[] graphValues = new double[this.getWidth() - 2 * MARGIN];
+      double[] guessValues = new double[this.getWidth() - 2 * MARGIN];
       double[] tempValues = new double[this.getWidth() - 2 * MARGIN];
       int[] graphCount = new int[this.getWidth() - 2 * MARGIN];
+      int[] guessCount = new int[this.getWidth() - 2 * MARGIN];
       double maxWatts = 0;
+      double maxGuess = 0;
       double maxTemp = 0;
       double minTemp = 100;
       for (Reading reading : mod.getReadings())
@@ -56,6 +59,19 @@ public class DayPanel extends JPanel
          minTemp = Math.min(reading.getTemperature(), minTemp);
       }
 
+      for (Reading reading : mod.getGuesses())
+      {
+         int bin = (int) ((reading.getTimestamp() - mod.getMinDate()) / flipValue);
+
+         // Adjust the top level values
+         bin = Math.min(bin, graphValues.length - 1);
+
+         guessValues[bin] += reading.getWattage();
+         guessCount[bin]++;
+         maxGuess = Math.max(reading.getWattage(), maxGuess);
+
+      }
+
       // Plot the graphs
       for (int i = 0; i < graphValues.length - 1; i++)
       {
@@ -66,6 +82,18 @@ public class DayPanel extends JPanel
                      - (MARGIN - (int) (graphValues[i] * (this.getHeight() - 2 * MARGIN) / maxWatts)),
                MARGIN + i + 1, this.getHeight() - (MARGIN - (int) (graphValues[i + 1] / maxWatts)));
 
+         g.setColor(Color.magenta);
+         int gx1 = MARGIN + i;
+         int gy1 = this.getHeight()
+               - (MARGIN + (int) ((guessValues[i] / guessCount[i])
+                     * (this.getHeight() - 2 * MARGIN) / maxGuess));
+         int gx2 = MARGIN + i + 1;
+         int gy2 = this.getHeight()
+               - (MARGIN + (int) ((guessValues[i + 1] / guessCount[i + 1])
+                     * (this.getHeight() - 2 * MARGIN) / maxGuess));
+
+         g.drawLine(gx1, gy1, gx2, gy2);
+
          g.setColor(Color.blue);
          int x1 = MARGIN + i;
          int y1 = this.getHeight()
@@ -74,8 +102,9 @@ public class DayPanel extends JPanel
          int x2 = MARGIN + i + 1;
          int y2 = (this.getHeight() - (MARGIN + (int) (((tempValues[i + 1] / graphCount[i + 1]) - minTemp)
                * (this.getHeight() - 2 * MARGIN) / (maxTemp - minTemp))));
-         System.out.println(x1 + "," + y1 + " => " + x2 + "," + y2);
+         // System.out.println(x1 + "," + y1 + " => " + x2 + "," + y2);
          g.drawLine(x1, y1, x2, y2);
+
       }
 
    }
@@ -92,7 +121,8 @@ public class DayPanel extends JPanel
    {
       ModelFactory f = new ModelFactory(new File("/Users/sat/workspace/electricity/data/"));
       Model mod = f.buildModel("00140b23096d");
-      mod.fixDate("Mar 14, 2012");
+      mod.addGuess(new File("read.txt"), "Mar 14, 2012");
+      // mod.fixDate("Mar 14, 2012");
       DayPanel dp = new DayPanel(mod);
 
       JFrame framer = new JFrame();
@@ -102,5 +132,4 @@ public class DayPanel extends JPanel
       framer.setVisible(true);
       framer.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
    }
-
 }

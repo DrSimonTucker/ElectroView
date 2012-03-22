@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -18,6 +19,7 @@ public class Model
 
    private String fixedDate = "";
    private final List<Reading> fixedReadings = new LinkedList<Reading>();
+   private final List<Reading> guessReadings = new LinkedList<Reading>();
 
    private long maxDate = 0;
    private long minDate = Long.MAX_VALUE;
@@ -25,6 +27,33 @@ public class Model
    public Model(File dir)
    {
       dataDir = dir;
+   }
+
+   public void addGuess(File data, String date)
+   {
+      fixDate(date);
+      try
+      {
+         long offset = df.parse(date).getTime();
+
+         BufferedReader reader = new BufferedReader(new FileReader(data));
+         for (String line = reader.readLine(); line != null; line = reader.readLine())
+         {
+            String[] elems = line.trim().split("\\s+");
+            long time = offset + Long.parseLong(elems[0]) * 1000;
+            double wattage = Double.parseDouble(elems[1]);
+            guessReadings.add(new Reading(0, time, wattage));
+         }
+         reader.close();
+      }
+      catch (IOException e)
+      {
+         e.printStackTrace();
+      }
+      catch (ParseException e)
+      {
+         e.printStackTrace();
+      }
    }
 
    public void fixDate(String date)
@@ -52,7 +81,7 @@ public class Model
             if (line != null)
             {
                String[] elems = line.trim().split(",");
-               Long dateValue = Long.parseLong(elems[0]) * 1000;
+               Long dateValue = Long.parseLong(elems[0]);
                dates.add(df.format(dateValue));
             }
             reader.close();
@@ -63,6 +92,11 @@ public class Model
          }
 
       return dates;
+   }
+
+   public List<Reading> getGuesses()
+   {
+      return guessReadings;
    }
 
    public long getMinDate()

@@ -19,6 +19,13 @@ public class ModelFactory
       baseDirectory = base;
    }
 
+   public Model buildModel(File base, File guess, String date)
+   {
+      Model m = new Model(base);
+      m.addGuess(guess, date);
+      return m;
+   }
+
    public Model buildModel(String deviceID)
    {
       return new Model(new File(baseDirectory, deviceID));
