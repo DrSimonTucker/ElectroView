@@ -37,7 +37,6 @@ public class ModelFactory
    {
       ModelFactory f = new ModelFactory(new File("/Users/sat/workspace/electricity/data/"));
       Model mod = f.buildModel("00140b23096d");
-      for (String date : mod.getDates())
-         System.out.println(date);
+      System.out.println(mod.getReadings("Mar 15, 2012").size());
    }
 }
