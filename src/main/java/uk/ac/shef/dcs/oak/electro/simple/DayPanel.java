@@ -12,7 +12,11 @@ public class DayPanel extends JPanel
    boolean drawGuess = false;
    boolean drawTemp = true;
    boolean drawWatts = true;
-   int MARGIN = 20;
+   int JUMP = 100;
+   int MARGIN = 40;
+   double maxTemp = -1;
+   double maxWatts = -1;
+   double minTemp = -1;
    Model mod;
    int TICKSIZE = 5;
 
@@ -23,6 +27,8 @@ public class DayPanel extends JPanel
 
    private void drawAxes(Graphics g)
    {
+      g.setColor(Color.black);
+
       // Draw the baseline lines
       g.drawLine(MARGIN, this.getHeight() - MARGIN, this.getWidth() - MARGIN, this.getHeight()
             - MARGIN);
@@ -40,6 +46,30 @@ public class DayPanel extends JPanel
          double pos = MARGIN + (i * tickAdd);
          g.drawString(i + "", (int) pos - 5, this.getHeight() - MARGIN + TICKSIZE + 13);
       }
+
+      // Draw in the axes for temperature
+      g.drawLine(this.getWidth() - MARGIN, this.getHeight() - MARGIN, this.getWidth() - MARGIN,
+            MARGIN);
+
+      // Draw the vertical tick marks
+      for (int i = (int) Math.ceil(minTemp); i < (int) Math.ceil(maxTemp); i++)
+      {
+         double pos = (i - minTemp) / (maxTemp - minTemp);
+         int yPos = this.getHeight() - (int) (pos * (this.getHeight() - 2 * MARGIN)) - MARGIN;
+         g.drawLine(this.getWidth() - MARGIN, yPos, this.getWidth() - MARGIN + TICKSIZE, yPos);
+
+         g.drawString(i + "", this.getWidth() - MARGIN + TICKSIZE + 1, yPos + 4);
+      }
+
+      // Draw the watts tick marks
+      for (int i = 0; i < (int) (Math.ceil(maxWatts)); i += JUMP)
+      {
+         double pos = (i) / maxWatts;
+         int yPos = this.getHeight() - (int) (pos * (this.getHeight() - 2 * MARGIN)) - MARGIN;
+         g.drawLine(MARGIN, yPos, MARGIN - TICKSIZE, yPos);
+
+         g.drawString(i + "", 0, yPos + 4);
+      }
    }
 
    private void drawGraph(Graphics g)
@@ -50,10 +80,10 @@ public class DayPanel extends JPanel
       double[] tempValues = new double[this.getWidth() - 2 * MARGIN];
       int[] graphCount = new int[this.getWidth() - 2 * MARGIN];
       int[] guessCount = new int[this.getWidth() - 2 * MARGIN];
-      double maxWatts = 0;
+      maxWatts = 0;
       double maxGuess = 0;
-      double maxTemp = 0;
-      double minTemp = 100;
+      maxTemp = 0;
+      minTemp = 100;
       for (Reading reading : mod.getReadings())
       {
          int bin = (int) ((reading.getTimestamp() - mod.getMinDate()) / flipValue);
@@ -69,8 +99,11 @@ public class DayPanel extends JPanel
          minTemp = Math.min(reading.getTemperature(), minTemp);
       }
 
+      System.out.println(maxWatts);
+
       for (Reading reading : mod.getGuesses())
       {
+
          int bin = (int) ((reading.getTimestamp() - mod.getMinDate()) / flipValue);
 
          // Adjust the top level values
@@ -88,12 +121,15 @@ public class DayPanel extends JPanel
          if (drawWatts)
          {
             g.setColor(Color.red);
-            g.drawLine(
-                  MARGIN + i,
-                  this.getHeight()
-                        - (MARGIN - (int) (graphValues[i] * (this.getHeight() - 2 * MARGIN) / maxWatts)),
-                  MARGIN + i + 1, this.getHeight()
-                        - (MARGIN - (int) (graphValues[i + 1] / maxWatts)));
+            int x1 = MARGIN + i;
+            int y1 = this.getHeight()
+                  - (MARGIN + (int) ((graphValues[i] / graphCount[i])
+                        * (this.getHeight() - 2 * MARGIN) / maxWatts));
+            int x2 = MARGIN + i + 1;
+            int y2 = this.getHeight()
+                  - (MARGIN + (int) ((graphValues[i + 1] / graphCount[i + 1])
+                        * (this.getHeight() - 2 * MARGIN) / maxWatts));
+            g.drawLine(x1, y1, x2, y2);
          }
          if (drawGuess)
          {
@@ -131,15 +167,15 @@ public class DayPanel extends JPanel
    public void paint(Graphics g)
    {
       super.paint(g);
-      drawAxes(g);
       drawGraph(g);
+      drawAxes(g);
    }
 
    public static void main(String[] args)
    {
       ModelFactory f = new ModelFactory(new File("/Users/sat/workspace/electricity/data/"));
       Model mod = f.buildModel("00140b230a80");
-      mod.addGuess(new File("read.txt"), "Mar 22, 2012");
+      mod.addGuess(new File("read.txt"), "Mar 23, 2012");
       // mod.fixDate("Mar 14, 2012");
       DayPanel dp = new DayPanel(mod);
 
