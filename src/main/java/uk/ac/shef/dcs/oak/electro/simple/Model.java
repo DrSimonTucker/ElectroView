@@ -41,6 +41,7 @@ public class Model
          {
             String[] elems = line.trim().split("\\s+");
             long time = offset + Long.parseLong(elems[0]) * 1000;
+
             double wattage = Double.parseDouble(elems[1]);
             guessReadings.add(new Reading(0, time, wattage));
          }
@@ -60,6 +61,16 @@ public class Model
    {
       fixedReadings.clear();
       fixedDate = date;
+
+      try
+      {
+         minDate = df.parse(date).getTime();
+         maxDate = minDate + 24 * 60 * 60 * 1000;
+      }
+      catch (ParseException e)
+      {
+         e.printStackTrace();
+      }
    }
 
    public long getDateRange()
@@ -81,7 +92,7 @@ public class Model
             if (line != null)
             {
                String[] elems = line.trim().split(",");
-               Long dateValue = Long.parseLong(elems[0]);
+               Long dateValue = Long.parseLong(elems[0]) * 1000;
                dates.add(df.format(dateValue));
             }
             reader.close();

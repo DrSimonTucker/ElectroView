@@ -9,6 +9,9 @@ import javax.swing.JPanel;
 
 public class DayPanel extends JPanel
 {
+   boolean drawGuess = false;
+   boolean drawTemp = true;
+   boolean drawWatts = true;
    int MARGIN = 20;
    Model mod;
    int TICKSIZE = 5;
@@ -30,6 +33,13 @@ public class DayPanel extends JPanel
       for (int i = 0; i < 25; i++)
          g.drawLine(MARGIN + (int) (i * tickAdd), this.getHeight() - MARGIN, MARGIN
                + (int) (i * tickAdd), this.getHeight() - MARGIN + TICKSIZE);
+
+      // Paint the times in
+      for (int i = 0; i < 25; i++)
+      {
+         double pos = MARGIN + (i * tickAdd);
+         g.drawString(i + "", (int) pos - 5, this.getHeight() - MARGIN + TICKSIZE + 13);
+      }
    }
 
    private void drawGraph(Graphics g)
@@ -75,35 +85,43 @@ public class DayPanel extends JPanel
       // Plot the graphs
       for (int i = 0; i < graphValues.length - 1; i++)
       {
-         g.setColor(Color.red);
-         g.drawLine(
-               MARGIN + i,
-               this.getHeight()
-                     - (MARGIN - (int) (graphValues[i] * (this.getHeight() - 2 * MARGIN) / maxWatts)),
-               MARGIN + i + 1, this.getHeight() - (MARGIN - (int) (graphValues[i + 1] / maxWatts)));
+         if (drawWatts)
+         {
+            g.setColor(Color.red);
+            g.drawLine(
+                  MARGIN + i,
+                  this.getHeight()
+                        - (MARGIN - (int) (graphValues[i] * (this.getHeight() - 2 * MARGIN) / maxWatts)),
+                  MARGIN + i + 1, this.getHeight()
+                        - (MARGIN - (int) (graphValues[i + 1] / maxWatts)));
+         }
+         if (drawGuess)
+         {
+            g.setColor(Color.magenta);
+            int gx1 = MARGIN + i;
+            int gy1 = this.getHeight()
+                  - (MARGIN + (int) ((guessValues[i] / guessCount[i])
+                        * (this.getHeight() - 2 * MARGIN) / maxGuess));
+            int gx2 = MARGIN + i + 1;
+            int gy2 = this.getHeight()
+                  - (MARGIN + (int) ((guessValues[i + 1] / guessCount[i + 1])
+                        * (this.getHeight() - 2 * MARGIN) / maxGuess));
+            g.drawLine(gx1, gy1, gx2, gy2);
+         }
 
-         g.setColor(Color.magenta);
-         int gx1 = MARGIN + i;
-         int gy1 = this.getHeight()
-               - (MARGIN + (int) ((guessValues[i] / guessCount[i])
-                     * (this.getHeight() - 2 * MARGIN) / maxGuess));
-         int gx2 = MARGIN + i + 1;
-         int gy2 = this.getHeight()
-               - (MARGIN + (int) ((guessValues[i + 1] / guessCount[i + 1])
-                     * (this.getHeight() - 2 * MARGIN) / maxGuess));
-
-         g.drawLine(gx1, gy1, gx2, gy2);
-
-         g.setColor(Color.blue);
-         int x1 = MARGIN + i;
-         int y1 = this.getHeight()
-               - (MARGIN + (int) (((tempValues[i] / graphCount[i]) - minTemp)
-                     * (this.getHeight() - 2 * MARGIN) / (maxTemp - minTemp)));
-         int x2 = MARGIN + i + 1;
-         int y2 = (this.getHeight() - (MARGIN + (int) (((tempValues[i + 1] / graphCount[i + 1]) - minTemp)
-               * (this.getHeight() - 2 * MARGIN) / (maxTemp - minTemp))));
-         // System.out.println(x1 + "," + y1 + " => " + x2 + "," + y2);
-         g.drawLine(x1, y1, x2, y2);
+         if (drawTemp)
+         {
+            g.setColor(Color.blue);
+            int x1 = MARGIN + i;
+            int y1 = this.getHeight()
+                  - (MARGIN + (int) (((tempValues[i] / graphCount[i]) - minTemp)
+                        * (this.getHeight() - 2 * MARGIN) / (maxTemp - minTemp)));
+            int x2 = MARGIN + i + 1;
+            int y2 = (this.getHeight() - (MARGIN + (int) (((tempValues[i + 1] / graphCount[i + 1]) - minTemp)
+                  * (this.getHeight() - 2 * MARGIN) / (maxTemp - minTemp))));
+            // System.out.println(x1 + "," + y1 + " => " + x2 + "," + y2);
+            g.drawLine(x1, y1, x2, y2);
+         }
 
       }
 
@@ -120,8 +138,8 @@ public class DayPanel extends JPanel
    public static void main(String[] args)
    {
       ModelFactory f = new ModelFactory(new File("/Users/sat/workspace/electricity/data/"));
-      Model mod = f.buildModel("00140b23096d");
-      mod.addGuess(new File("read.txt"), "Mar 14, 2012");
+      Model mod = f.buildModel("00140b230a80");
+      mod.addGuess(new File("read.txt"), "Mar 22, 2012");
       // mod.fixDate("Mar 14, 2012");
       DayPanel dp = new DayPanel(mod);
 

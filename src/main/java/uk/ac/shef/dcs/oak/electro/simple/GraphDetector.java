@@ -139,7 +139,7 @@ public class GraphDetector extends JPanel
 
    public static void main(String[] args)
    {
-      GraphDetector detect = new GraphDetector(new File("/Users/sat/Desktop/IMG_2791.JPG"));
+      GraphDetector detect = new GraphDetector(new File("/Users/sat/Desktop/IMG_2800.JPG"));
       JFrame framer = new JFrame();
       framer.add(detect);
       framer.setSize(500, 500);
