@@ -52,7 +52,7 @@ public class GraphDetector extends JPanel
       });
    }
 
-   private double getMidPoint(double x1, double x2, double y1, double y2)
+   private double getMidPoint(double x1, double x2, double y1, double y2, boolean draw)
    {
       int imgHeight = img.getHeight(this);
       int imgWidth = img.getWidth(this);
@@ -62,9 +62,11 @@ public class GraphDetector extends JPanel
       int bestX = 0;
       for (int i = ((int) (y1 * imgHeight)); i < ((int) (y2 * imgHeight)); i++)
       {
-         double xperc = (x1 - (Math.abs(x2 - x1) + 0.0) * (i - (y1 * imgHeight))
+         double xperc = (x1 + ((x2 - x1) + 0.0) * (i - (y1 * imgHeight))
                / (y2 * imgHeight - y1 * imgHeight));
          int xVal = Math.max(0, (int) (xperc * imgWidth));
+         if (draw)
+            img.setRGB(xVal, i, Color.magenta.getRGB());
          int rgb = img.getRGB(xVal, i);
          Color c = new Color(rgb);
 
@@ -98,7 +100,7 @@ public class GraphDetector extends JPanel
 
       double mp = getMidPoint((x[0] + x[3] + 0.0) / (2 * this.getWidth()), (x[1] + x[2] + 0.0)
             / (2 * this.getWidth()), (y[0] + y[3] + 0.0) / (2 * this.getHeight()),
-            (y[1] + y[2] + 0.0) / (2 * this.getHeight()));
+            (y[1] + y[2] + 0.0) / (2 * this.getHeight()), false);
 
       g.drawImage(img, 0, 0, this.getWidth(), this.getHeight(), Color.white, this);
 
@@ -128,7 +130,8 @@ public class GraphDetector extends JPanel
          double xEnd = (x[1] + (x[2] - x[1]) * perc) / this.getWidth();
          double yStart = (y[0] + (y[3] - y[0]) * perc) / this.getHeight();
          double yEnd = (y[1] + (y[2] - y[1]) * perc) / this.getHeight();
-         vals[i] = (int) (getMidPoint(xStart, xEnd, yStart, yEnd) * this.getHeight());
+         vals[i] = this.getHeight()
+               - (int) (getMidPoint(xStart, xEnd, yStart, yEnd, false) * this.getHeight());
          ps.println(i + " " + vals[i]);
       }
       ps.close();
@@ -136,7 +139,7 @@ public class GraphDetector extends JPanel
 
    public static void main(String[] args)
    {
-      GraphDetector detect = new GraphDetector(new File("/Users/sat/Desktop/IMG_2788.JPG"));
+      GraphDetector detect = new GraphDetector(new File("/Users/sat/Desktop/IMG_2791.JPG"));
       JFrame framer = new JFrame();
       framer.add(detect);
       framer.setSize(500, 500);
