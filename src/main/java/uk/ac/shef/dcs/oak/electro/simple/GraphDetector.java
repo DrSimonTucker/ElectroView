@@ -20,12 +20,12 @@ public class GraphDetector extends JPanel
    JProgressBar bar;
    DetectionCallback callback;
    int counter = 0;
+   boolean fixed = false;
    File imageFile;
    BufferedImage img;
    double perc;
-
+   int[] vals;
    int[] x = new int[4];
-
    int[] y = new int[4];
 
    public GraphDetector(File imageFile, DetectionCallback callback)
@@ -41,9 +41,13 @@ public class GraphDetector extends JPanel
          {
             if (arg0.getButton() == 1)
             {
-               x[counter] = arg0.getX();
-               y[counter] = arg0.getY();
-               counter = (counter + 1) % x.length;
+               if (!fixed || counter != 0)
+               {
+                  x[counter] = arg0.getX();
+                  y[counter] = arg0.getY();
+                  counter = (counter + 1) % x.length;
+                  fixed = true;
+               }
             }
             else
                produceGraph();
@@ -81,8 +85,8 @@ public class GraphDetector extends JPanel
          }
       }
 
-      if (counter == 0)
-         img.setRGB(bestX, bestIndex, Color.green.getRGB());
+      // if (counter == 0)
+      // img.setRGB(bestX, bestIndex, Color.green.getRGB());
 
       return (bestIndex + 0.0) / imgHeight;
    }
@@ -100,23 +104,31 @@ public class GraphDetector extends JPanel
             e.printStackTrace();
          }
 
-      double mp = getMidPoint((x[0] + x[3] + 0.0) / (2 * this.getWidth()), (x[1] + x[2] + 0.0)
-            / (2 * this.getWidth()), (y[0] + y[3] + 0.0) / (2 * this.getHeight()),
-            (y[1] + y[2] + 0.0) / (2 * this.getHeight()), false);
-
       g.drawImage(img, 0, 0, this.getWidth(), this.getHeight(), Color.white, this);
-
-      g.setColor(Color.magenta);
-      g.drawLine(0, (int) (mp * this.getHeight()), this.getWidth(), (int) (mp * this.getHeight()));
 
       g.setColor(Color.red);
       g.drawPolygon(x, y, x.length);
 
-      // Draw the marker line
-      g.setColor(Color.magenta);
-      // g.drawLine((x[0] + x[3]) / 2, (y[0] + y[3]) / 2, (x[1] + x[2]) / 2,
-      // (y[1] + y[2]) / 2);
+      g.setColor(Color.green);
+      // Paint the electricity min-max if we're done
+      int oldX = 0;
+      int oldY = 0;
+      if (vals != null)
+         for (int i = 0; i < vals.length; i++)
+         {
+            double perc = (i + 0.0) / vals.length;
+            double percValue = vals[i] / 1000.0;
+            double xPointBot = perc * (x[2] - x[1]) + x[1];
+            double xPointTop = perc * (x[3] - x[0]) + x[0];
+            double yPointBot = perc * (y[2] - y[1]) + y[1];
+            double yPointTop = perc * (y[3] - y[0]) + y[0];
 
+            int plotX = (int) (percValue * (xPointTop - xPointBot) + xPointBot);
+            int plotY = (int) (percValue * (yPointTop - yPointBot) + yPointBot);
+            g.drawLine(oldX, oldY, plotX, plotY);
+            oldX = plotX;
+            oldY = plotY;
+         }
    }
 
    private void produceGraph()
@@ -153,7 +165,7 @@ public class GraphDetector extends JPanel
    {
       PrintStream ps = new PrintStream(outFile);
       int SIZE = 60 * 60 * 24;
-      int[] vals = new int[SIZE];
+      vals = new int[SIZE];
       for (int i = 0; i < SIZE; i++)
       {
          perc = (i + 0.0) / SIZE;
@@ -164,6 +176,7 @@ public class GraphDetector extends JPanel
          double xEnd = (x[1] + (x[2] - x[1]) * perc) / this.getWidth();
          double yStart = (y[0] + (y[3] - y[0]) * perc) / this.getHeight();
          double yEnd = (y[1] + (y[2] - y[1]) * perc) / this.getHeight();
+         System.out.println("HERE = " + xStart + "," + yStart + " and " + xEnd + "," + yEnd);
          vals[i] = this.getHeight()
                - (int) (getMidPoint(xStart, xEnd, yStart, yEnd, false) * this.getHeight());
          ps.println(i + " " + vals[i]);
