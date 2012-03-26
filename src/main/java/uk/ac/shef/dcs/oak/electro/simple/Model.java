@@ -7,10 +7,9 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
 
 public class Model
 {
@@ -24,6 +23,8 @@ public class Model
    private long maxDate = 0;
    private long minDate = Long.MAX_VALUE;
 
+   boolean scaleGuesses = true;
+
    public Model(File dir)
    {
       dataDir = dir;
@@ -31,6 +32,7 @@ public class Model
 
    public void addGuess(File data, String date)
    {
+      System.out.println("Adding guess data");
       fixDate(date);
       try
       {
@@ -85,8 +87,8 @@ public class Model
 
    public Collection<String> getDates()
    {
-
-      Set<String> dates = new TreeSet<String>();
+      List<Long> dateValues = new LinkedList<Long>();
+      List<String> dates = new LinkedList<String>();
       for (File f : dataDir.listFiles())
          try
          {
@@ -96,7 +98,7 @@ public class Model
             {
                String[] elems = line.trim().split(",");
                Long dateValue = Long.parseLong(elems[0]) * 1000;
-               dates.add(df.format(dateValue));
+               dateValues.add(dateValue);
             }
             reader.close();
          }
@@ -105,12 +107,50 @@ public class Model
             e.printStackTrace();
          }
 
+      Collections.sort(dateValues);
+      for (Long dateValue : dateValues)
+         if (!dates.contains(df.format(dateValue)))
+            dates.add(df.format(dateValue));
       return dates;
+   }
+
+   public String getFixedDate()
+   {
+      return fixedDate;
    }
 
    public List<Reading> getGuesses()
    {
-      return guessReadings;
+      if (scaleGuesses)
+      {
+         List<Reading> scaledReadings = new LinkedList<Reading>();
+         double minWatts = Double.MAX_VALUE;
+         double maxWatts = 0;
+         for (Reading reading : fixedReadings)
+         {
+            minWatts = Math.min(minWatts, reading.getWattage());
+            maxWatts = Math.max(maxWatts, reading.getWattage());
+         }
+
+         double minGuess = Double.MAX_VALUE;
+         double maxGuess = 0;
+         for (Reading reading : guessReadings)
+         {
+            minGuess = Math.min(minGuess, reading.getWattage());
+            maxGuess = Math.max(maxGuess, reading.getWattage());
+         }
+
+         for (Reading reading : guessReadings)
+         {
+            double scaledWatts = (reading.getWattage() - minGuess) / (maxGuess - minGuess);
+            double reScaledWatts = scaledWatts * (maxWatts - minWatts) + minWatts;
+            scaledReadings.add(new Reading(0.0, reading.getTimestamp(), reScaledWatts));
+         }
+
+         return scaledReadings;
+      }
+      else
+         return guessReadings;
    }
 
    public long getMinDate()

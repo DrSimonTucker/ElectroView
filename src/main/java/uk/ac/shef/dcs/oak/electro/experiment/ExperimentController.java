@@ -3,19 +3,31 @@ package uk.ac.shef.dcs.oak.electro.experiment;
 import java.awt.BorderLayout;
 import java.io.File;
 
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 
 import uk.ac.shef.dcs.oak.electro.ElectroConstants;
 import uk.ac.shef.dcs.oak.electro.simple.DayPanel;
+import uk.ac.shef.dcs.oak.electro.simple.DetectionCallback;
+import uk.ac.shef.dcs.oak.electro.simple.GraphDetector;
 import uk.ac.shef.dcs.oak.electro.simple.Model;
 import uk.ac.shef.dcs.oak.electro.simple.ModelFactory;
 
-public class ExperimentController
+public class ExperimentController implements DetectionCallback
 {
    private ExperimentPanel controls;
+   JFrame detectFrame;
    private ModelFactory factory;
    private DayPanel graph;
    private Model selected;
+
+   @Override
+   public void detected()
+   {
+      detectFrame.setVisible(false);
+      selected.addGuess(new File("read.txt"), selected.getFixedDate());
+      controls.showGuess();
+   }
 
    public Object[] getDays(String device)
    {
@@ -36,6 +48,22 @@ public class ExperimentController
       framer.setVisible(true);
       framer.setExtendedState(JFrame.MAXIMIZED_BOTH);
       framer.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+   }
+
+   public void loadGuesses()
+   {
+      System.out.println("Loading Guesses");
+      JFileChooser chooser = new JFileChooser();
+      chooser.showOpenDialog(graph);
+      File chosen = chooser.getSelectedFile();
+      if (chosen != null)
+      {
+         GraphDetector detector = new GraphDetector(chosen, this);
+         detectFrame = new JFrame();
+         detectFrame.add(detector);
+         detectFrame.setVisible(true);
+         detectFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+      }
    }
 
    public void runExperiment()

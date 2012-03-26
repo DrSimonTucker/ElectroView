@@ -16,6 +16,8 @@ public class ExperimentPanel extends JPanel
 {
    ExperimentController controller;
 
+   JCheckBox guess;
+
    public ExperimentPanel(ExperimentController control)
    {
       controller = control;
@@ -66,6 +68,14 @@ public class ExperimentPanel extends JPanel
       gbl.setConstraints(loadGraph, new GridBagConstraints(2, 0, 1, 3, 0.0, 1.0,
             GridBagConstraints.CENTER, GridBagConstraints.NONE, new Insets(5, 5, 5, 5), 0, 0));
       this.add(loadGraph);
+      loadGraph.addActionListener(new ActionListener()
+      {
+         @Override
+         public void actionPerformed(ActionEvent arg0)
+         {
+            controller.loadGuesses();
+         }
+      });
 
       final JCheckBox watts = new JCheckBox("Watts");
       gbl.setConstraints(watts, new GridBagConstraints(3, 0, 1, 1, 0.0, 1.0,
@@ -94,9 +104,24 @@ public class ExperimentPanel extends JPanel
          }
       });
 
-      JCheckBox guess = new JCheckBox("Guess");
+      guess = new JCheckBox("Guess");
       gbl.setConstraints(guess, new GridBagConstraints(3, 2, 1, 1, 0.0, 1.0,
             GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(5, 5, 5, 5), 0, 0));
       this.add(guess);
+      guess.addActionListener(new ActionListener()
+      {
+         @Override
+         public void actionPerformed(ActionEvent arg0)
+         {
+            controller.showGuess(guess.isSelected());
+         }
+      });
+
+   }
+
+   public void showGuess()
+   {
+      guess.setSelected(true);
+      controller.showGuess(true);
    }
 }

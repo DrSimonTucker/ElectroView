@@ -10,19 +10,27 @@ import java.io.IOException;
 import java.io.PrintStream;
 
 import javax.imageio.ImageIO;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 
 public class GraphDetector extends JPanel
 {
+   JProgressBar bar;
+   DetectionCallback callback;
    int counter = 0;
    File imageFile;
    BufferedImage img;
+   double perc;
+
    int[] x = new int[4];
+
    int[] y = new int[4];
 
-   public GraphDetector(File imageFile)
+   public GraphDetector(File imageFile, DetectionCallback callback)
    {
+      this.callback = callback;
       this.imageFile = imageFile;
 
       this.addMouseListener(new MouseAdapter()
@@ -38,14 +46,8 @@ public class GraphDetector extends JPanel
                counter = (counter + 1) % x.length;
             }
             else
-               try
-               {
-                  produceGraph(new File("read.txt"));
-               }
-               catch (IOException e)
-               {
-                  e.printStackTrace();
-               }
+               produceGraph();
+
             repaint();
          }
 
@@ -117,6 +119,36 @@ public class GraphDetector extends JPanel
 
    }
 
+   private void produceGraph()
+   {
+      final JDialog popupFrame = new JDialog();
+      popupFrame.setModal(true);
+      bar = new JProgressBar(0, 1000);
+      popupFrame.add(bar);
+      popupFrame.pack();
+      popupFrame.setLocationRelativeTo(this);
+      Thread graphThread = new Thread(new Runnable()
+      {
+         @Override
+         public void run()
+         {
+            try
+            {
+               produceGraph(new File("read.txt"));
+            }
+            catch (IOException e)
+            {
+               e.printStackTrace();
+            }
+            perc = 1;
+            popupFrame.setVisible(false);
+         }
+      });
+
+      graphThread.start();
+      popupFrame.setVisible(true);
+   }
+
    private void produceGraph(File outFile) throws IOException
    {
       PrintStream ps = new PrintStream(outFile);
@@ -124,7 +156,9 @@ public class GraphDetector extends JPanel
       int[] vals = new int[SIZE];
       for (int i = 0; i < SIZE; i++)
       {
-         double perc = (i + 0.0) / SIZE;
+         perc = (i + 0.0) / SIZE;
+         if (bar != null)
+            bar.setValue((int) (perc * 1000));
 
          double xStart = (x[0] + (x[3] - x[0]) * perc) / this.getWidth();
          double xEnd = (x[1] + (x[2] - x[1]) * perc) / this.getWidth();
@@ -135,11 +169,14 @@ public class GraphDetector extends JPanel
          ps.println(i + " " + vals[i]);
       }
       ps.close();
+
+      if (callback != null)
+         callback.detected();
    }
 
    public static void main(String[] args)
    {
-      GraphDetector detect = new GraphDetector(new File("/Users/sat/Desktop/IMG_2800.JPG"));
+      GraphDetector detect = new GraphDetector(new File("/Users/sat/Desktop/IMG_2791.JPG"), null);
       JFrame framer = new JFrame();
       framer.add(detect);
       framer.setSize(500, 500);
