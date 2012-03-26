@@ -10,8 +10,8 @@ import javax.swing.JPanel;
 public class DayPanel extends JPanel
 {
    boolean drawGuess = false;
-   boolean drawTemp = true;
-   boolean drawWatts = true;
+   boolean drawTemp = false;
+   boolean drawWatts = false;
    int JUMP = 100;
    int MARGIN = 40;
    double maxTemp = -1;
@@ -19,6 +19,11 @@ public class DayPanel extends JPanel
    double minTemp = -1;
    Model mod;
    int TICKSIZE = 5;
+
+   public DayPanel()
+   {
+
+   }
 
    public DayPanel(Model mod)
    {
@@ -52,24 +57,26 @@ public class DayPanel extends JPanel
             MARGIN);
 
       // Draw the vertical tick marks
-      for (int i = (int) Math.ceil(minTemp); i < (int) Math.ceil(maxTemp); i++)
-      {
-         double pos = (i - minTemp) / (maxTemp - minTemp);
-         int yPos = this.getHeight() - (int) (pos * (this.getHeight() - 2 * MARGIN)) - MARGIN;
-         g.drawLine(this.getWidth() - MARGIN, yPos, this.getWidth() - MARGIN + TICKSIZE, yPos);
+      if (maxTemp > 0)
+         for (int i = (int) Math.ceil(minTemp); i < (int) Math.ceil(maxTemp); i++)
+         {
+            double pos = (i - minTemp) / (maxTemp - minTemp);
+            int yPos = this.getHeight() - (int) (pos * (this.getHeight() - 2 * MARGIN)) - MARGIN;
+            g.drawLine(this.getWidth() - MARGIN, yPos, this.getWidth() - MARGIN + TICKSIZE, yPos);
 
-         g.drawString(i + "", this.getWidth() - MARGIN + TICKSIZE + 1, yPos + 4);
-      }
+            g.drawString(i + "", this.getWidth() - MARGIN + TICKSIZE + 1, yPos + 4);
+         }
 
       // Draw the watts tick marks
-      for (int i = 0; i < (int) (Math.ceil(maxWatts)); i += JUMP)
-      {
-         double pos = (i) / maxWatts;
-         int yPos = this.getHeight() - (int) (pos * (this.getHeight() - 2 * MARGIN)) - MARGIN;
-         g.drawLine(MARGIN, yPos, MARGIN - TICKSIZE, yPos);
+      if (maxWatts > 0)
+         for (int i = 0; i < (int) (Math.ceil(maxWatts)); i += JUMP)
+         {
+            double pos = (i) / maxWatts;
+            int yPos = this.getHeight() - (int) (pos * (this.getHeight() - 2 * MARGIN)) - MARGIN;
+            g.drawLine(MARGIN, yPos, MARGIN - TICKSIZE, yPos);
 
-         g.drawString(i + "", 0, yPos + 4);
-      }
+            g.drawString(i + "", 0, yPos + 4);
+         }
    }
 
    private void drawGraph(Graphics g)
@@ -98,8 +105,6 @@ public class DayPanel extends JPanel
          maxTemp = Math.max(reading.getTemperature(), maxTemp);
          minTemp = Math.min(reading.getTemperature(), minTemp);
       }
-
-      System.out.println(maxWatts);
 
       for (Reading reading : mod.getGuesses())
       {
@@ -167,8 +172,33 @@ public class DayPanel extends JPanel
    public void paint(Graphics g)
    {
       super.paint(g);
-      drawGraph(g);
+      if (mod != null)
+         drawGraph(g);
       drawAxes(g);
+   }
+
+   public void setModel(Model mod)
+   {
+      this.mod = mod;
+      repaint();
+   }
+
+   public void showGuess(boolean val)
+   {
+      drawGuess = val;
+      repaint();
+   }
+
+   public void showTemp(boolean val)
+   {
+      drawTemp = val;
+      repaint();
+   }
+
+   public void showWatts(boolean val)
+   {
+      drawWatts = val;
+      repaint();
    }
 
    public static void main(String[] args)

@@ -59,17 +59,20 @@ public class Model
 
    public void fixDate(String date)
    {
-      fixedReadings.clear();
-      fixedDate = date;
+      if (date != null)
+      {
+         fixedReadings.clear();
+         fixedDate = date;
 
-      try
-      {
-         minDate = df.parse(date).getTime();
-         maxDate = minDate + 24 * 60 * 60 * 1000;
-      }
-      catch (ParseException e)
-      {
-         e.printStackTrace();
+         try
+         {
+            minDate = df.parse(date).getTime();
+            maxDate = minDate + 24 * 60 * 60 * 1000;
+         }
+         catch (ParseException e)
+         {
+            e.printStackTrace();
+         }
       }
    }
 
