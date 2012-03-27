@@ -92,15 +92,13 @@ public class GraphDetector extends JPanel
          double xperc = (x1 + ((x2 - x1) + 0.0) * (i - (y1 * imgHeight))
                / (y2 * imgHeight - y1 * imgHeight));
          int xVal = Math.max(0, (int) (xperc * imgWidth));
-         if (draw)
-            img.setRGB(xVal, i, Color.magenta.getRGB());
          int rgb = img.getRGB(xVal, i);
+         if (draw)
+            img.setRGB(xVal, i, Color.blue.getRGB());
+
          Color c = new Color(rgb);
 
-         double sumv = (int) (getWeight(x1, x2, y1, y2, (i - (y1 * imgHeight))
-               / (y2 * imgHeight - y1 * imgHeight)))
-               * (c.getBlue() + c.getGreen() + c.getRed());
-
+         double sumv = (c.getBlue() + c.getGreen() + c.getRed());
          if (sumv < bestValue)
          {
             bestValue = sumv;
@@ -109,8 +107,11 @@ public class GraphDetector extends JPanel
          }
       }
 
-      if (counter == 0)
-         img.setRGB(bestX, bestIndex, Color.magenta.getRGB());
+      xPos.add(bestX);
+      yPos.add(bestIndex);
+      /*
+       * if (counter == 0) img.setRGB(bestX, bestIndex, Color.magenta.getRGB());
+       */
       repaint();
 
       return (bestIndex + 0.0) / imgHeight;
@@ -187,7 +188,6 @@ public class GraphDetector extends JPanel
          xEnd = (x[1] + (x[2] - x[1]) * perc) / this.getWidth();
          yStart = (y[0] + (y[3] - y[0]) * perc) / this.getHeight();
          yEnd = (y[1] + (y[2] - y[1]) * perc) / this.getHeight();
-         System.out.println("HERE = " + xStart + "," + yStart + " and " + xEnd + "," + yEnd);
          vals[i] = this.getHeight()
                - (int) (getMidPoint(xStart, xEnd, yStart, yEnd, false) * this.getHeight());
          ps.println(i + " " + vals[i]);
@@ -198,7 +198,7 @@ public class GraphDetector extends JPanel
          callback.detected();
    }
 
-   public static void main(String[] args)
+   public static void main(String[] args) throws Exception
    {
       GraphDetector detect = new GraphDetector(new File("/Users/sat/Desktop/IMG_2791.JPG"), null);
       JFrame framer = new JFrame();
