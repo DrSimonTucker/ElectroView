@@ -26,7 +26,7 @@ public class GraphDetector extends JPanel
    boolean fixed = false;
    File imageFile;
    BufferedImage img;
-   int minY = Integer.MAX_VALUE;
+   int minY = -1;
    double perc;
    Map<Integer, Integer> posMap = new TreeMap<Integer, Integer>();
    int[] vals;
@@ -70,7 +70,7 @@ public class GraphDetector extends JPanel
          {
             if (fixed)
             {
-               if (minY > img.getHeight())
+               if (minY == -1)
                   minY = e.getY();
                posMap.put(e.getX(), e.getY());
                repaint();
@@ -133,13 +133,8 @@ public class GraphDetector extends JPanel
    {
       int xCoord = (int) (x * this.getWidth());
       int yCoord = (int) (y * this.getHeight());
-      System.out.println(x + "," + xCoord + " = > " + posMap.get(xCoord));
-      return 1.0;
-   }
 
-   private double getWeight(double x1, double x2, double y1, double y2, double perc)
-   {
-      return 1.0;
+      return Math.abs(yCoord - posMap.get(xCoord));
    }
 
    @Override
