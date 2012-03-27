@@ -4,20 +4,18 @@ import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionAdapter;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.LinkedList;
-import java.util.List;
 
 import javax.imageio.ImageIO;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 
-public class GraphDetector extends JPanel
+public class OldGraphDetector extends JPanel
 {
    JProgressBar bar;
    DetectionCallback callback;
@@ -28,13 +26,9 @@ public class GraphDetector extends JPanel
    double perc;
    int[] vals;
    int[] x = new int[4];
-   List<Integer> xPos = new LinkedList<Integer>();
-   double xStart, xEnd, yStart, yEnd;
    int[] y = new int[4];
 
-   List<Integer> yPos = new LinkedList<Integer>();
-
-   public GraphDetector(File imageFile, DetectionCallback callback)
+   public OldGraphDetector(File imageFile, DetectionCallback callback)
    {
       this.callback = callback;
       this.imageFile = imageFile;
@@ -60,21 +54,6 @@ public class GraphDetector extends JPanel
 
             repaint();
          }
-      });
-
-      this.addMouseMotionListener(new MouseMotionAdapter()
-      {
-
-         @Override
-         public void mouseDragged(MouseEvent e)
-         {
-            if (fixed)
-            {
-               xPos.add(e.getX());
-               yPos.add(e.getY());
-               repaint();
-            }
-         }
 
       });
    }
@@ -84,9 +63,8 @@ public class GraphDetector extends JPanel
       int imgHeight = img.getHeight(this);
       int imgWidth = img.getWidth(this);
 
-      double bestValue = Double.MAX_VALUE;
+      int bestValue = Integer.MAX_VALUE;
       int bestIndex = 0;
-      int bestX = 0;
       for (int i = ((int) (y1 * imgHeight)); i < ((int) (y2 * imgHeight)); i++)
       {
          double xperc = (x1 + ((x2 - x1) + 0.0) * (i - (y1 * imgHeight))
@@ -97,28 +75,18 @@ public class GraphDetector extends JPanel
          int rgb = img.getRGB(xVal, i);
          Color c = new Color(rgb);
 
-         double sumv = (int) (getWeight(x1, x2, y1, y2, (i - (y1 * imgHeight))
-               / (y2 * imgHeight - y1 * imgHeight)))
-               * (c.getBlue() + c.getGreen() + c.getRed());
-
+         int sumv = c.getBlue() + c.getGreen() + c.getRed();
          if (sumv < bestValue)
          {
             bestValue = sumv;
             bestIndex = i;
-            bestX = xVal;
          }
       }
 
-      if (counter == 0)
-         img.setRGB(bestX, bestIndex, Color.magenta.getRGB());
-      repaint();
+      // if (counter == 0)
+      // img.setRGB(bestX, bestIndex, Color.green.getRGB());
 
       return (bestIndex + 0.0) / imgHeight;
-   }
-
-   private double getWeight(double x1, double x2, double y1, double y2, double perc)
-   {
-      return 1.0;
    }
 
    @Override
@@ -139,19 +107,39 @@ public class GraphDetector extends JPanel
       g.setColor(Color.red);
       g.drawPolygon(x, y, x.length);
 
-      g.setColor(Color.magenta);
-      g.drawLine((int) (xStart * this.getWidth()), (int) (yStart * this.getHeight()),
-            (int) (xEnd * this.getWidth()), (int) (yEnd * this.getHeight()));
-
-      // Paint the electricity curve
       g.setColor(Color.green);
-      for (int i = 1; i < xPos.size(); i++)
-         g.drawLine(xPos.get(i - 1), yPos.get(i - 1), xPos.get(i), yPos.get(i));
+
+      // Paint the electricity min-max if we're done
+      int oldX = 0;
+      int oldY = 0;
+      int imgHeight = img.getHeight();
+      int imgWidth = img.getWidth();
+      if (vals != null)
+         for (int i = 0; i < vals.length; i++)
+         {
+            double perc = (i + 0.0) / vals.length;
+            double percValue = vals[i] / 1000.0;
+            double xPointBot = (perc * (x[2] - x[1]) + x[1]);
+            double xPointTop = (perc * (x[3] - x[0]) + x[0]);
+            double yPointBot = (perc * (y[2] - y[1]) + y[1]);
+            double yPointTop = (perc * (y[3] - y[0]) + y[0]);
+
+            int imageX = (int) (percValue * (xPointTop - xPointBot) + xPointBot);
+            int imageY = (int) (percValue * (yPointTop - yPointBot) + yPointBot);
+            g.drawLine(oldX, oldY, plotX, plotY);
+            oldX = plotX;
+            oldY = plotY;
+         }
    }
 
    private void produceGraph()
    {
-
+      final JDialog popupFrame = new JDialog();
+      popupFrame.setModal(true);
+      bar = new JProgressBar(0, 1000);
+      popupFrame.add(bar);
+      popupFrame.pack();
+      popupFrame.setLocationRelativeTo(this);
       Thread graphThread = new Thread(new Runnable()
       {
          @Override
@@ -166,10 +154,12 @@ public class GraphDetector extends JPanel
                e.printStackTrace();
             }
             perc = 1;
+            popupFrame.setVisible(false);
          }
       });
 
       graphThread.start();
+      popupFrame.setVisible(true);
    }
 
    private void produceGraph(File outFile) throws IOException
@@ -183,10 +173,10 @@ public class GraphDetector extends JPanel
          if (bar != null)
             bar.setValue((int) (perc * 1000));
 
-         xStart = (x[0] + (x[3] - x[0]) * perc) / this.getWidth();
-         xEnd = (x[1] + (x[2] - x[1]) * perc) / this.getWidth();
-         yStart = (y[0] + (y[3] - y[0]) * perc) / this.getHeight();
-         yEnd = (y[1] + (y[2] - y[1]) * perc) / this.getHeight();
+         double xStart = (x[0] + (x[3] - x[0]) * perc) / this.getWidth();
+         double xEnd = (x[1] + (x[2] - x[1]) * perc) / this.getWidth();
+         double yStart = (y[0] + (y[3] - y[0]) * perc) / this.getHeight();
+         double yEnd = (y[1] + (y[2] - y[1]) * perc) / this.getHeight();
          System.out.println("HERE = " + xStart + "," + yStart + " and " + xEnd + "," + yEnd);
          vals[i] = this.getHeight()
                - (int) (getMidPoint(xStart, xEnd, yStart, yEnd, false) * this.getHeight());
@@ -200,7 +190,7 @@ public class GraphDetector extends JPanel
 
    public static void main(String[] args)
    {
-      GraphDetector detect = new GraphDetector(new File("/Users/sat/Desktop/IMG_2791.JPG"), null);
+      OldGraphDetector detect = new OldGraphDetector(new File("/Users/sat/Desktop/IMG_2791.JPG"), null);
       JFrame framer = new JFrame();
       framer.add(detect);
       framer.setSize(500, 500);
