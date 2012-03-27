@@ -124,8 +124,8 @@ public class OldGraphDetector extends JPanel
             double yPointBot = (perc * (y[2] - y[1]) + y[1]);
             double yPointTop = (perc * (y[3] - y[0]) + y[0]);
 
-            int imageX = (int) (percValue * (xPointTop - xPointBot) + xPointBot);
-            int imageY = (int) (percValue * (yPointTop - yPointBot) + yPointBot);
+            int plotX = (int) (percValue * (xPointTop - xPointBot) + xPointBot);
+            int plotY = (int) (percValue * (yPointTop - yPointBot) + yPointBot);
             g.drawLine(oldX, oldY, plotX, plotY);
             oldX = plotX;
             oldY = plotY;
@@ -178,8 +178,7 @@ public class OldGraphDetector extends JPanel
          double yStart = (y[0] + (y[3] - y[0]) * perc) / this.getHeight();
          double yEnd = (y[1] + (y[2] - y[1]) * perc) / this.getHeight();
          System.out.println("HERE = " + xStart + "," + yStart + " and " + xEnd + "," + yEnd);
-         vals[i] = this.getHeight()
-               - (int) (getMidPoint(xStart, xEnd, yStart, yEnd, false) * this.getHeight());
+         vals[i] = (int) (1000 * (getMidPoint(xStart, xEnd, yStart, yEnd, false)));
          ps.println(i + " " + vals[i]);
       }
       ps.close();
@@ -190,7 +189,8 @@ public class OldGraphDetector extends JPanel
 
    public static void main(String[] args)
    {
-      OldGraphDetector detect = new OldGraphDetector(new File("/Users/sat/Desktop/IMG_2791.JPG"), null);
+      OldGraphDetector detect = new OldGraphDetector(new File("/Users/sat/Desktop/IMG_2791.JPG"),
+            null);
       JFrame framer = new JFrame();
       framer.add(detect);
       framer.setSize(500, 500);

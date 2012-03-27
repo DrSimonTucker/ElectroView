@@ -9,8 +9,9 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
@@ -25,14 +26,13 @@ public class GraphDetector extends JPanel
    boolean fixed = false;
    File imageFile;
    BufferedImage img;
+   int minY = Integer.MAX_VALUE;
    double perc;
+   Map<Integer, Integer> posMap = new TreeMap<Integer, Integer>();
    int[] vals;
    int[] x = new int[4];
-   List<Integer> xPos = new LinkedList<Integer>();
    double xStart, xEnd, yStart, yEnd;
    int[] y = new int[4];
-
-   List<Integer> yPos = new LinkedList<Integer>();
 
    public GraphDetector(File imageFile, DetectionCallback callback)
    {
@@ -70,13 +70,24 @@ public class GraphDetector extends JPanel
          {
             if (fixed)
             {
-               xPos.add(e.getX());
-               yPos.add(e.getY());
+               if (minY > img.getHeight())
+                  minY = e.getY();
+               posMap.put(e.getX(), e.getY());
                repaint();
             }
          }
 
       });
+   }
+
+   private void fixPosMap()
+   {
+      int prev = minY;
+      for (int i = 0; i < this.getWidth(); i++)
+         if (posMap.containsKey(i))
+            prev = posMap.get(i);
+         else
+            posMap.put(i, prev);
    }
 
    private double getMidPoint(double x1, double x2, double y1, double y2, boolean draw)
@@ -99,22 +110,31 @@ public class GraphDetector extends JPanel
          Color c = new Color(rgb);
 
          double sumv = (c.getBlue() + c.getGreen() + c.getRed());
-         if (sumv < bestValue)
+         double weight = getWeight((xVal + 0.0) / imgWidth, (i + 0.0) / imgHeight);
+         if (sumv * weight < bestValue)
          {
-            bestValue = sumv;
+            bestValue = sumv * weight;
             bestIndex = i;
             bestX = xVal;
          }
       }
 
-      xPos.add(bestX);
-      yPos.add(bestIndex);
       /*
        * if (counter == 0) img.setRGB(bestX, bestIndex, Color.magenta.getRGB());
        */
       repaint();
 
-      return (bestIndex + 0.0) / imgHeight;
+      // System.out.println(1 - ((bestIndex - y1 * imgHeight) / (y2 * imgHeight
+      // - y1 * imgHeight)));
+      return 1 - (bestIndex - y1 * imgHeight) / (y2 * imgHeight - y1 * imgHeight);
+   }
+
+   private double getWeight(double x, double y)
+   {
+      int xCoord = (int) (x * this.getWidth());
+      int yCoord = (int) (y * this.getHeight());
+      System.out.println(x + "," + xCoord + " = > " + posMap.get(xCoord));
+      return 1.0;
    }
 
    private double getWeight(double x1, double x2, double y1, double y2, double perc)
@@ -146,12 +166,34 @@ public class GraphDetector extends JPanel
 
       // Paint the electricity curve
       g.setColor(Color.green);
-      for (int i = 1; i < xPos.size(); i++)
-         g.drawLine(xPos.get(i - 1), yPos.get(i - 1), xPos.get(i), yPos.get(i));
+      int oldX = 0;
+      int oldY = 0;
+      if (vals != null)
+         for (int i = 0; i < vals.length; i++)
+         {
+            double perc = (i + 0.0) / vals.length;
+            double percValue = vals[i] / 1000.0;
+
+            double xPointBot = (perc * (x[2] - x[1]) + x[1]);
+            double xPointTop = (perc * (x[3] - x[0]) + x[0]);
+            double yPointBot = (perc * (y[2] - y[1]) + y[1]);
+            double yPointTop = (perc * (y[3] - y[0]) + y[0]);
+
+            int plotX = (int) (percValue * (xPointTop - xPointBot) + xPointBot);
+            int plotY = (int) (percValue * (yPointTop - yPointBot) + yPointBot);
+            g.drawLine(oldX, oldY, plotX, plotY);
+            oldX = plotX;
+            oldY = plotY;
+         }
+
+      g.setColor(Color.blue);
+      for (Entry<Integer, Integer> entry : posMap.entrySet())
+         g.drawLine(entry.getKey(), entry.getValue(), entry.getKey() + 1, entry.getValue() + 1);
    }
 
    private void produceGraph()
    {
+      fixPosMap();
 
       Thread graphThread = new Thread(new Runnable()
       {
@@ -188,8 +230,7 @@ public class GraphDetector extends JPanel
          xEnd = (x[1] + (x[2] - x[1]) * perc) / this.getWidth();
          yStart = (y[0] + (y[3] - y[0]) * perc) / this.getHeight();
          yEnd = (y[1] + (y[2] - y[1]) * perc) / this.getHeight();
-         vals[i] = this.getHeight()
-               - (int) (getMidPoint(xStart, xEnd, yStart, yEnd, false) * this.getHeight());
+         vals[i] = (int) (1000 * (getMidPoint(xStart, xEnd, yStart, yEnd, false)));
          ps.println(i + " " + vals[i]);
       }
       ps.close();
@@ -200,7 +241,7 @@ public class GraphDetector extends JPanel
 
    public static void main(String[] args) throws Exception
    {
-      GraphDetector detect = new GraphDetector(new File("/Users/sat/Desktop/IMG_2791.JPG"), null);
+      GraphDetector detect = new GraphDetector(new File("/Users/sat/Desktop/IMG_2876.JPG"), null);
       JFrame framer = new JFrame();
       framer.add(detect);
       framer.setSize(500, 500);
