@@ -83,12 +83,15 @@ public class GraphDetector extends JPanel
 
    private void fixPosMap()
    {
-      int prev = minY;
-      for (int i = 0; i < this.getWidth(); i++)
-         if (posMap.containsKey(i))
-            prev = posMap.get(i);
-         else
-            posMap.put(i, prev);
+      if (posMap.size() > 0)
+      {
+         int prev = minY;
+         for (int i = 0; i < this.getWidth(); i++)
+            if (posMap.containsKey(i))
+               prev = posMap.get(i);
+            else
+               posMap.put(i, prev);
+      }
       runFix = true;
    }
 
