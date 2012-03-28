@@ -46,7 +46,7 @@ public class GraphDetector extends JPanel
          @Override
          public void mouseClicked(MouseEvent arg0)
          {
-            if (arg0.getButton() == 1 && arg0.getModifiers() == 0)
+            if (arg0.getButton() == 1 && arg0.getModifiers() == 16)
             {
                if (!fixed || counter != 0)
                {
