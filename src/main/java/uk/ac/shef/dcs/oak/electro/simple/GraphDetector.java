@@ -29,6 +29,7 @@ public class GraphDetector extends JPanel
    int minY = -1;
    double perc;
    Map<Integer, Integer> posMap = new TreeMap<Integer, Integer>();
+   boolean runFix = false;
    int[] vals;
    int[] x = new int[4];
    double xStart, xEnd, yStart, yEnd;
@@ -88,6 +89,7 @@ public class GraphDetector extends JPanel
             prev = posMap.get(i);
          else
             posMap.put(i, prev);
+      runFix = true;
    }
 
    private double getMidPoint(double x1, double x2, double y1, double y2, boolean draw)
@@ -95,7 +97,7 @@ public class GraphDetector extends JPanel
       int imgHeight = img.getHeight(this);
       int imgWidth = img.getWidth(this);
 
-      double bestValue = Double.MAX_VALUE;
+      double bestValue = 0;
       int bestIndex = 0;
       int bestX = 0;
       for (int i = ((int) (y1 * imgHeight)); i < ((int) (y2 * imgHeight)); i++)
@@ -109,15 +111,20 @@ public class GraphDetector extends JPanel
 
          Color c = new Color(rgb);
 
-         double sumv = (c.getBlue() + c.getGreen() + c.getRed());
+         double sumv = 255 * 3 - (c.getBlue() + c.getGreen() + c.getRed());
+         // System.out.println(i + ": " + sumv + " => " + c.getBlue() + " and "
+         // + c.getGreen()
+         // + " and " + c.getRed());
          double weight = getWeight((xVal + 0.0) / imgWidth, (i + 0.0) / imgHeight);
-         if (sumv * weight < bestValue)
+         if (sumv * weight > bestValue)
          {
             bestValue = sumv * weight;
             bestIndex = i;
             bestX = xVal;
          }
       }
+
+      // System.exit(1);
 
       /*
        * if (counter == 0) img.setRGB(bestX, bestIndex, Color.magenta.getRGB());
@@ -131,10 +138,17 @@ public class GraphDetector extends JPanel
 
    private double getWeight(double x, double y)
    {
+      if (posMap.size() == 0)
+         return 1.0;
+
       int xCoord = (int) (x * this.getWidth());
       int yCoord = (int) (y * this.getHeight());
 
-      return Math.abs(yCoord - posMap.get(xCoord));
+      double weight = Math.abs(yCoord - posMap.get(xCoord));
+      if (weight < this.getHeight() * 0.05)
+         return 1.0;
+      else
+         return weight / this.getHeight();
    }
 
    @Override
@@ -181,9 +195,12 @@ public class GraphDetector extends JPanel
             oldY = plotY;
          }
 
-      g.setColor(Color.blue);
-      for (Entry<Integer, Integer> entry : posMap.entrySet())
-         g.drawLine(entry.getKey(), entry.getValue(), entry.getKey() + 1, entry.getValue() + 1);
+      if (!runFix)
+      {
+         g.setColor(Color.blue);
+         for (Entry<Integer, Integer> entry : posMap.entrySet())
+            g.drawLine(entry.getKey(), entry.getValue(), entry.getKey() + 1, entry.getValue() + 1);
+      }
    }
 
    private void produceGraph()
