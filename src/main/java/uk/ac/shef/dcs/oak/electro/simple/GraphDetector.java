@@ -26,6 +26,7 @@ public class GraphDetector extends JPanel
    boolean fixed = false;
    File imageFile;
    BufferedImage img;
+   int lastY = -1;
    int minY = -1;
    double perc;
    Map<Integer, Integer> posMap = new TreeMap<Integer, Integer>();
@@ -33,6 +34,7 @@ public class GraphDetector extends JPanel
    int[] vals;
    int[] x = new int[4];
    double xStart, xEnd, yStart, yEnd;
+
    int[] y = new int[4];
 
    public GraphDetector(File imageFile, DetectionCallback callback)
@@ -118,12 +120,16 @@ public class GraphDetector extends JPanel
          // System.out.println(i + ": " + sumv + " => " + c.getBlue() + " and "
          // + c.getGreen()
          // + " and " + c.getRed());
-         double weight = getWeight((xVal + 0.0) / imgWidth, (i + 0.0) / imgHeight);
+         double drawWeight = getWeight((xVal + 0.0) / imgWidth, (i + 0.0) / imgHeight);
+         double posWeight = getPosWeight(lastY, i);
+         double weight = drawWeight * posWeight;
+         // System.out.println("WEIGHT = " + posWeight);
          if (sumv * weight > bestValue)
          {
             bestValue = sumv * weight;
             bestIndex = i;
             bestX = xVal;
+
          }
       }
 
@@ -135,10 +141,19 @@ public class GraphDetector extends JPanel
        * if (counter == 0) img.setRGB(bestX, bestIndex, Color.magenta.getRGB());
        */
       repaint();
+      lastY = bestIndex;
 
       // System.out.println(1 - ((bestIndex - y1 * imgHeight) / (y2 * imgHeight
       // - y1 * imgHeight)));
       return 1 - (bestIndex - y1 * imgHeight) / (y2 * imgHeight - y1 * imgHeight);
+   }
+
+   private double getPosWeight(int lastY, int currY)
+   {
+      if (lastY == -1)
+         return 1.0;
+      double POWER = 10.0;
+      return 1.0 - (Math.abs(lastY - currY) + 0.0) / img.getHeight() * POWER;
    }
 
    private double getWeight(double x, double y)
