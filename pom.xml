@@ -47,7 +47,7 @@
 	  </execution>
 	</executions>
 	<configuration>
-	  <mainClass>uk.ac.shef.dcs.oak.electro.simple.GraphDetector</mainClass>
+	  <mainClass>uk.ac.shef.dcs.oak.electro.experiment.ExperimentController</mainClass>
 	</configuration>
       </plugin>
     </plugins>

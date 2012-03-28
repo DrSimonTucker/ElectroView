@@ -127,6 +127,8 @@ public class GraphDetector extends JPanel
          }
       }
 
+      System.out.println(bestValue);
+
       // System.exit(1);
 
       /*
