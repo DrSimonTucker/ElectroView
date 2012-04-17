@@ -1,5 +1,6 @@
 package uk.ac.shef.dcs.oak.electro.plotting;
 
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
@@ -13,25 +14,85 @@ import uk.ac.shef.dcs.oak.electro.simple.ModelFactory;
 
 public class JPEGPlotter
 {
-   private Image produceImage(Model electro)
+   boolean drawgrid = false;
+
+   private Image produceImage(Model electro, int width, int height, int gridsize)
    {
-      BufferedImage image = new BufferedImage(100, 100, BufferedImage.TYPE_BYTE_GRAY);
+      BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+
+      int gridColor = Color.lightGray.getRGB();
+      int graphColor = Color.black.getRGB();
+
+      // TUrn all the pixels white
+      for (int i = 0; i < width; i++)
+         for (int j = 0; j < height; j++)
+            image.setRGB(i, j, Color.white.getRGB());
+
+      // Paint in the grid - first the vertical lines
+      if (drawgrid)
+      {
+         for (int i = 0; i < width; i += gridsize)
+            for (int j = 0; j < height; j += gridsize)
+               for (int counter = 0; counter < gridsize; counter++)
+                  if (j + counter < height)
+                     image.setRGB(i, j + counter, gridColor);
+
+         // Paint in the grid - next the horizontal
+         for (int i = 0; i < height; i += gridsize)
+            for (int j = 0; j < width; j += gridsize)
+               for (int counter = 0; counter < gridsize; counter++)
+                  if (j + counter < width)
+                     image.setRGB(j + counter, i, gridColor);
+      }
+
+      // Draw in the graph, around the grid lines
+      int oldY = -1;
+      for (int i = 0; i < width; i += gridsize)
+      {
+         int pixStart = i;
+         int pixEnd = i + gridsize;
+         double percStart = (pixStart + 0.0) / width;
+         double percEnd = (pixEnd + 0.0) / width;
+
+         double percHeight = electro.getValue(percStart, percEnd) / electro.getMaxValue();
+         int pixHeight = height - gridsize
+               * (Math.min(height - 1, ((int) (height * percHeight))) / gridsize) - 1;
+         if (oldY == -1)
+            oldY = pixHeight;
+
+         // Draw the up line of the bar
+         if (pixHeight > oldY)
+            for (int y = oldY; y <= pixHeight; y++)
+               image.setRGB(i, y, graphColor);
+         else
+            for (int y = oldY; y >= pixHeight; y--)
+               image.setRGB(i, y, graphColor);
+
+         // Draw the horizontal line of the bar
+         for (int x = i; x <= i + gridsize; x++)
+            if (x < width)
+               image.setRGB(x, pixHeight, graphColor);
+
+         oldY = pixHeight;
+
+      }
+
       return image;
    }
 
    public void saveJPEG(Model electro, File outFile) throws IOException
    {
-      Image img = produceImage(electro);
-      ImageIO.write(toBufferedImage(img), "jpg", outFile);
+      Image img = produceImage(electro, 865, 613, 1);
+      ImageIO.write(toBufferedImage(img), "gif", outFile);
    }
 
    public static void main(String[] args) throws Exception
    {
       ModelFactory f = new ModelFactory(new File("/Users/sat/workspace/electricity/data/"));
       Model mod = f.buildModel("00140b230a80");
-      mod.fixDate("Mar 25, 2012");
+      mod.fixDate("Mar 24, 2012");
       JPEGPlotter plotter = new JPEGPlotter();
-      plotter.saveJPEG(mod, new File("test.jpg"));
+      plotter.saveJPEG(mod, new File("test.gif"));
    }
 
    private static BufferedImage toBufferedImage(Image src)

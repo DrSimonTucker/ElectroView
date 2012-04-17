@@ -47,7 +47,7 @@
 	  </execution>
 	</executions>
 	<configuration>
-	  <mainClass>uk.ac.shef.dcs.oak.electro.plotter.JPEGPlotter</mainClass>
+	  <mainClass>uk.ac.shef.dcs.oak.electro.plotting.JPEGPlotter</mainClass>
 	</configuration>
       </plugin>
     </plugins>

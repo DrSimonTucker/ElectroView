@@ -153,6 +153,14 @@ public class Model
          return guessReadings;
    }
 
+   public double getMaxValue()
+   {
+      double maxValue = 0.0;
+      for (Reading r : fixedReadings)
+         maxValue = Math.max(r.getWattage(), maxValue);
+      return maxValue;
+   }
+
    public long getMinDate()
    {
       if (maxDate == 0)
@@ -201,5 +209,23 @@ public class Model
          }
 
       return readings;
+   }
+
+   public double getValue(double percStart, double percEnd)
+   {
+      long range = getDateRange();
+
+      double maxValue = 0.0;
+      double valSum = 0.0;
+      int count = 0;
+      for (Reading reading : getReadings())
+         if (reading.getTimestamp() >= range * percStart + minDate
+               && reading.getTimestamp() <= range * percEnd + minDate)
+         {
+            count++;
+            valSum += reading.getWattage();
+            maxValue = Math.max(maxValue, reading.getWattage());
+         }
+      return maxValue;
    }
 }
