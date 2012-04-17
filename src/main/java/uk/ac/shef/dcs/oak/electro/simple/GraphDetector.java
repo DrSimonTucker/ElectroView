@@ -22,6 +22,7 @@ public class GraphDetector extends JPanel
 {
    JProgressBar bar;
    DetectionCallback callback;
+   boolean computed = false;
    int counter = 0;
    boolean fixed = false;
    File imageFile;
@@ -31,8 +32,10 @@ public class GraphDetector extends JPanel
    double perc;
    Map<Integer, Integer> posMap = new TreeMap<Integer, Integer>();
    boolean runFix = false;
+   int SIZE = 60 * 60 * 24;
    int[] vals;
    int[] x = new int[4];
+
    double xStart, xEnd, yStart, yEnd;
 
    int[] y = new int[4];
@@ -50,13 +53,14 @@ public class GraphDetector extends JPanel
          {
             if (arg0.getButton() == 1 && arg0.getModifiers() == 16)
             {
-               if (!fixed || counter != 0)
+               if ((!computed && !fixed) || counter != 0)
                {
                   x[counter] = arg0.getX();
                   y[counter] = arg0.getY();
                   counter = (counter + 1) % x.length;
                   fixed = true;
                }
+
             }
             else
                produceGraph();
@@ -71,11 +75,31 @@ public class GraphDetector extends JPanel
          @Override
          public void mouseDragged(MouseEvent e)
          {
-            if (fixed)
+            if (!computed && fixed)
             {
                if (minY == -1)
                   minY = e.getY();
                posMap.put(e.getX(), e.getY());
+               repaint();
+            }
+            else if (computed)
+            {
+               System.out.println("Adjusted");
+               // Compute the time range
+               int lowerPoint = e.getX() - 1;
+               int upperPoint = e.getX() + 1;
+
+               int yPoint = e.getY();
+               double yPerc = (yPoint - y[0] + 0.0) / (y[1] - y[0]);
+               double leftPerc = x[0] + ((yPoint - y[0] + 0.0) / (y[1] - y[0])) * (x[0] - x[1]);
+               double rightPerc = x[3] + ((yPoint - y[3] + 0.0) / (y[2] - y[3])) * (x[3] - x[2]);
+
+               double lowerPerc = (lowerPoint - leftPerc) / (rightPerc - leftPerc);
+               double upperPerc = (upperPoint - leftPerc) / (rightPerc - leftPerc);
+
+               for (int i = (int) (lowerPerc * SIZE); i <= (int) (upperPerc * SIZE); i++)
+                  vals[i] = 1000 - (int) (yPerc * 1000);
+
                repaint();
             }
          }
@@ -132,8 +156,6 @@ public class GraphDetector extends JPanel
 
          }
       }
-
-      System.out.println(bestValue);
 
       // System.exit(1);
 
@@ -241,6 +263,7 @@ public class GraphDetector extends JPanel
                e.printStackTrace();
             }
             perc = 1;
+            computed = true;
          }
       });
 
@@ -250,7 +273,7 @@ public class GraphDetector extends JPanel
    private void produceGraph(File outFile) throws IOException
    {
       PrintStream ps = new PrintStream(outFile);
-      int SIZE = 60 * 60 * 24;
+
       vals = new int[SIZE];
       for (int i = 0; i < SIZE; i++)
       {
