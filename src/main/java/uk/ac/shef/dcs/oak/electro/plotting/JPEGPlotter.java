@@ -14,7 +14,19 @@ import uk.ac.shef.dcs.oak.electro.simple.ModelFactory;
 
 public class JPEGPlotter
 {
-   boolean drawgrid = false;
+   boolean drawgrid = true;
+   int PSIZE = 5;
+
+   private void paintPixel(BufferedImage image, int x, int y, int colour, int psize)
+   {
+      image.setRGB(x, y, colour);
+
+      // Also set the surrounding pixels
+      for (int i = x - psize; i <= x + psize; i++)
+         for (int j = y - psize; j <= y + psize; j++)
+            if (i < image.getWidth() && i >= 0 && j < image.getHeight() && j >= 0)
+               image.setRGB(i, j, colour);
+   }
 
    private Image produceImage(Model electro, int width, int height, int gridsize)
    {
@@ -31,18 +43,27 @@ public class JPEGPlotter
       // Paint in the grid - first the vertical lines
       if (drawgrid)
       {
+         int gcount = 0;
          for (int i = 0; i < width; i += gridsize)
+         {
             for (int j = 0; j < height; j += gridsize)
                for (int counter = 0; counter < gridsize; counter++)
                   if (j + counter < height)
-                     image.setRGB(i, j + counter, gridColor);
+                     if (gcount % 3 == 0)
+                        paintPixel(image, i, j + counter, gridColor, PSIZE);
+                     else
+                        paintPixel(image, i, j + counter, gridColor, PSIZE - 4);
+            gcount++;
+         }
+         // image.setRGB(i, j + counter, gridColor);
 
          // Paint in the grid - next the horizontal
          for (int i = 0; i < height; i += gridsize)
             for (int j = 0; j < width; j += gridsize)
                for (int counter = 0; counter < gridsize; counter++)
                   if (j + counter < width)
-                     image.setRGB(j + counter, i, gridColor);
+                     paintPixel(image, j + counter, i, gridColor, PSIZE);
+         // image.setRGB(j + counter, i, gridColor);
       }
 
       // Draw in the graph, around the grid lines
@@ -63,15 +84,18 @@ public class JPEGPlotter
          // Draw the up line of the bar
          if (pixHeight > oldY)
             for (int y = oldY; y <= pixHeight; y++)
-               image.setRGB(i, y, graphColor);
+               paintPixel(image, i, y, graphColor, PSIZE);
+         // image.setRGB(i, y, graphColor);
          else
             for (int y = oldY; y >= pixHeight; y--)
-               image.setRGB(i, y, graphColor);
+               paintPixel(image, i, y, graphColor, PSIZE);
+         // image.setRGB(i, y, graphColor);
 
          // Draw the horizontal line of the bar
          for (int x = i; x <= i + gridsize; x++)
             if (x < width)
-               image.setRGB(x, pixHeight, graphColor);
+               paintPixel(image, x, pixHeight, graphColor, PSIZE);
+         // image.setRGB(x, pixHeight, graphColor);
 
          oldY = pixHeight;
 
@@ -82,7 +106,7 @@ public class JPEGPlotter
 
    public void saveJPEG(Model electro, File outFile) throws IOException
    {
-      Image img = produceImage(electro, 865, 613, 1);
+      Image img = produceImage(electro, 8641, 6121, 120);
       ImageIO.write(toBufferedImage(img), "gif", outFile);
    }
 
