@@ -45,6 +45,24 @@ public class Reading
 
          return new Reading(temp, timestamp, wattage);
       }
+      else if (elems.length == 4)
+      {
+         long timestamp = Long.parseLong(elems[0]) * 1000;
+         double temp = Double.parseDouble(elems[2]);
+         double wattage = Double.parseDouble(elems[3]);
+
+         return new Reading(temp, timestamp, wattage);
+      }
+      else if (elems.length == 5 && elems[4].equals("0"))
+      {
+         long timestamp = Long.parseLong(elems[0]) * 1000;
+         double temp = Double.parseDouble(elems[2]);
+         double wattage = Double.parseDouble(elems[3]);
+
+         return new Reading(temp, timestamp, wattage);
+      }
+      // else
+      // System.err.println(line.trim() + " => " + elems.length);
 
       return null;
    }

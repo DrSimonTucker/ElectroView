@@ -16,6 +16,10 @@ import uk.ac.shef.dcs.oak.electro.simple.ModelFactory;
 public class JPEGPlotter
 {
    boolean drawgrid = true;
+
+   // Margin size in pixels
+   int MARGIN = 50;
+
    int PSIZE = 5;
 
    private void paintPixel(BufferedImage image, int x, int y, int colour, int psize)
@@ -45,11 +49,11 @@ public class JPEGPlotter
       if (drawgrid)
       {
          int gcount = 0;
-         for (int i = 0; i < width; i += gridsize)
+         for (int i = MARGIN; i <= width - MARGIN; i += gridsize)
          {
-            for (int j = 0; j < height; j += gridsize)
+            for (int j = MARGIN; j <= height - MARGIN; j += gridsize)
                for (int counter = 0; counter < gridsize; counter++)
-                  if (j + counter < height)
+                  if (j + counter < height - MARGIN)
                      if (gcount % 3 == 0)
                         paintPixel(image, i, j + counter, gridColor, PSIZE);
                      else
@@ -59,17 +63,17 @@ public class JPEGPlotter
          // image.setRGB(i, j + counter, gridColor);
 
          // Paint in the grid - next the horizontal
-         for (int i = 0; i < height; i += gridsize)
-            for (int j = 0; j < width; j += gridsize)
+         for (int i = MARGIN; i <= height - MARGIN; i += gridsize)
+            for (int j = MARGIN; j <= width - MARGIN; j += gridsize)
                for (int counter = 0; counter < gridsize; counter++)
-                  if (j + counter < width)
+                  if (j + counter < width - MARGIN)
                      paintPixel(image, j + counter, i, gridColor, PSIZE);
          // image.setRGB(j + counter, i, gridColor);
       }
 
       // Draw in the graph, around the grid lines
       int oldY = -1;
-      for (int i = 0; i < width; i += gridsize)
+      for (int i = MARGIN; i < width - 2 * MARGIN; i += gridsize)
       {
          int pixStart = i;
          int pixEnd = i + gridsize;
@@ -77,7 +81,7 @@ public class JPEGPlotter
          double percEnd = (pixEnd + 0.0) / width;
 
          double percHeight = electro.getValue(percStart, percEnd) / electro.getMaxValue();
-         int pixHeight = height - gridsize
+         int pixHeight = (height - MARGIN) - gridsize
                * (Math.min(height - 1, ((int) (height * percHeight))) / gridsize) - 1;
          if (oldY == -1)
             oldY = pixHeight;
@@ -107,7 +111,7 @@ public class JPEGPlotter
 
    public void saveJPEG(Model electro, File outFile) throws IOException
    {
-      Image img = produceImage(electro, 8641, 6121, 120);
+      Image img = produceImage(electro, 8641 + 2 * MARGIN, 6121 + 2 * MARGIN, 120);
       ImageIO.write(toBufferedImage(img), "gif", outFile);
    }
 
