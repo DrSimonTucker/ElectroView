@@ -45,7 +45,7 @@ public class Reading
 
          return new Reading(temp, timestamp, wattage);
       }
-      else if (elems.length == 4)
+      else if (elems.length == 4 && elems[2].length() > 0)
       {
          long timestamp = Long.parseLong(elems[0]) * 1000;
          double temp = Double.parseDouble(elems[2]);
