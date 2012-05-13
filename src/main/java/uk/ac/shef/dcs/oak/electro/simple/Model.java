@@ -61,6 +61,7 @@ public class Model
 
    public void fixDate(String date)
    {
+	   System.out.println("Fixing date: " + date);
       if (date != null)
       {
          fixedReadings.clear();
@@ -108,6 +109,7 @@ public class Model
          }
 
       Collections.sort(dateValues);
+      Collections.reverse(dateValues);
       for (Long dateValue : dateValues)
          if (!dates.contains(df.format(dateValue)))
             dates.add(df.format(dateValue));

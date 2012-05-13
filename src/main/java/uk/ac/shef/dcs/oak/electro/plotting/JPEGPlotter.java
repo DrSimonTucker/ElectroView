@@ -6,6 +6,7 @@ import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Iterator;
 
 import javax.imageio.ImageIO;
 
@@ -113,10 +114,16 @@ public class JPEGPlotter
    public static void main(String[] args) throws Exception
    {
       ModelFactory f = new ModelFactory(new File("/Users/sat/workspace/electricity/data/"));
-      Model mod = f.buildModel("00140b230a80");
-      mod.fixDate("Mar 24, 2012");
-      JPEGPlotter plotter = new JPEGPlotter();
-      plotter.saveJPEG(mod, new File("test.gif"));
+      for (String id : f.getDevices())
+      {
+         System.out.println("Building for " + id);
+         Model mod = f.buildModel(id);
+         Iterator<String> dIterator = mod.getDates().iterator();
+         dIterator.next();
+         mod.fixDate(dIterator.next());
+         JPEGPlotter plotter = new JPEGPlotter();
+         plotter.saveJPEG(mod, new File(id + ".gif"));
+      }
    }
 
    private static BufferedImage toBufferedImage(Image src)
